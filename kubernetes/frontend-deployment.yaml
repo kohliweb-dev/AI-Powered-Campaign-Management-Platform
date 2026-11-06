@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: capstone-frontend
+  namespace: enterprise-capstone
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: capstone-frontend
+  template:
+    metadata:
+      labels:
+        app: capstone-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: docker.io/library/enterprise-capstone-frontend:k8s
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80

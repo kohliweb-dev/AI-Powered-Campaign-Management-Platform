@@ -1,0 +1,32 @@
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: capstone-backend
+  namespace: enterprise-capstone
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: capstone-backend
+
+  template:
+    metadata:
+      labels:
+        app: capstone-backend
+
+    spec:
+      containers:
+        - name: backend
+          image: docker.io/library/enterprise_capstone-backend:latest
+          imagePullPolicy: Never
+
+          envFrom:
+            - secretRef:
+                name: capstone-secrets
+
+          ports:
+            - containerPort: 8000

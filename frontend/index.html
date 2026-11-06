@@ -1,0 +1,567 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampaignAI | Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Authentication Screen -->
+    <main id="authScreen" class="auth-screen">
+        <div class="auth-layout">
+            <section class="auth-showcase" aria-label="CampaignAI platform overview">
+                <a class="auth-brand" href="#" aria-label="CampaignAI home">
+                    <span class="auth-brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 17.5 9.2 12l3.5 3.2L20 7"></path><path d="M14.5 7H20v5.5"></path></svg>
+                    </span>
+                    <span>Campaign<span>AI</span></span>
+                </a>
+
+                <div class="auth-showcase-copy">
+                    <span class="auth-overline">YOUR GROWTH, IN MOTION</span>
+                    <h1>Make every campaign count.</h1>
+                    <p>Bring your strategy, creative, and performance insights together in one intelligent workspace.</p>
+                </div>
+
+                <div class="auth-preview" aria-hidden="true">
+                    <div class="auth-preview-top">
+                        <span class="auth-preview-dot"></span>
+                        <span>Campaign performance</span>
+                        <span class="auth-preview-period">This month</span>
+                    </div>
+                    <div class="auth-preview-metric">
+                        <strong>Campaign overview</strong>
+                        <span>↗ Ready for what’s next</span>
+                    </div>
+                    <div class="auth-preview-chart">
+                        <span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span>
+                    </div>
+                    <div class="auth-preview-footer">
+                        <span><i></i> Clear insights</span>
+                        <span><i></i> Smarter decisions</span>
+                    </div>
+                </div>
+
+                <p class="auth-showcase-footer">A smarter way to build what’s next.</p>
+            </section>
+
+            <section class="auth-card" aria-labelledby="authTitle">
+                <div class="auth-card-content">
+                    <div class="auth-card-heading">
+                        <span class="auth-card-eyebrow">CAMPAIGNAI WORKSPACE</span>
+                        <h2 id="authTitle">Login to CampaignAI</h2>
+                        <p>Sign in or create an account to manage your campaigns.</p>
+                    </div>
+
+                    <form id="authForm" class="auth-form">
+                        <div id="usernameGroup" class="auth-field">
+                            <label for="authUsername">Username</label>
+                            <input id="authUsername" type="text" placeholder="Your name" autocomplete="username">
+                        </div>
+
+                        <div class="auth-field">
+                            <label for="authEmail">Email address</label>
+                            <input id="authEmail" type="email" placeholder="you@company.com" autocomplete="email" required>
+                        </div>
+
+                        <div class="auth-field">
+                            <label for="authPassword">Password</label>
+                            <input id="authPassword" type="password" placeholder="Enter your password" autocomplete="current-password" required>
+                        </div>
+
+                        <button id="authSubmitBtn" class="auth-submit-btn" type="submit">
+                            <span>Login</span>
+                            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+                        </button>
+                    </form>
+
+                    <p id="authStatus" class="auth-status" role="status" aria-live="polite"></p>
+
+                    <p class="auth-switch">
+                        <span id="authSwitchText">Don't have an account?</span>
+                        <button type="button" id="authSwitchBtn">Register</button>
+                    </p>
+
+                    <div class="auth-trust-note">
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 2.8 8 7 10 4.2-2 7-5.5 7-10V6z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                        <span>Your workspace is protected and secure</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div class="app-container" id="appContainer" style="display:none;">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>Campaign<span>AI</span></h2>
+            </div>
+
+            <nav>
+                <a href="#dashboard" class="nav-link active">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2"></rect><rect x="13" y="3" width="8" height="5" rx="2"></rect><rect x="13" y="10" width="8" height="11" rx="2"></rect><rect x="3" y="13" width="8" height="8" rx="2"></rect></svg>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="#campaigns" class="nav-link">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"></path><path d="M4 5.5v15M8 7h8M8 11h7"></path></svg>
+                    <span>Campaigns</span>
+                </a>
+
+                <a href="#generator" class="nav-link">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7z"></path><path d="m19 15 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"></path></svg>
+                    <span>AI Generator</span>
+                </a>
+
+                <a href="#assistant" class="nav-link">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-6.5A7.5 7.5 0 1 1 20 11.5Z"></path><path d="M8 11h.01M12 11h.01M16 11h.01"></path></svg>
+                    <span>AI Assistant</span>
+                </a>
+
+                <a href="#analytics" class="nav-link">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V5M4 19h17"></path><path d="m7 15 4-4 3 2 6-7"></path></svg>
+                    <span>Analytics</span>
+                </a>
+
+                <!-- Admin-only navigation -->
+                <a href="#userManagement" id="adminUsersNav" class="nav-link hidden">
+                    <svg aria-hidden="true" viewBox="0 0 24 24">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="10" cy="7" r="4"></circle>
+                        <path d="M20 8v6M23 11h-6"></path>
+                    </svg>
+                    <span>User Management</span>
+                </a>
+
+                <a href="#settings" class="nav-link">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="m19.4 15 .1.1 1.2.9-1.2 2.1-1.4-.5a8 8 0 0 1-1.7 1l-.2 1.5h-2.4l-.3-1.5a8 8 0 0 1-1.8-1l-1.4.5-1.2-2.1 1.2-.9a7 7 0 0 1 0-2l-1.2-.9 1.2-2.1 1.4.5a8 8 0 0 1 1.8-1l.3-1.5h2.4l.2 1.5a8 8 0 0 1 1.7 1l1.4-.5 1.2 2.1-1.2.9a7 7 0 0 1 0 2Z" transform="translate(-1 -1)"></path></svg>
+                    <span>Settings</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <p>AI Campaign Platform</p>
+                <small>Version 1.0</small>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" id="dashboard">
+
+            <!-- Header -->
+            <header class="topbar">
+                <div>
+                    <h1>Dashboard</h1>
+                    <p>Welcome to your campaign management platform.</p>
+                </div>
+
+                <div class="profile">
+                    <div class="avatar" id="profileAvatar">U</div>
+                    <div class="profile-copy">
+                        <span id="profileName">User</span>
+                        <small id="profileRole">User</small>
+                    </div>
+                    <button type="button" id="logoutBtn">Logout</button>
+                </div>
+            </header>
+
+            <!-- Statistics -->
+            <section class="stats-container">
+                <div class="stat-card">
+                    <p>Total Campaigns</p>
+                    <h2 id="totalCampaigns">0</h2>
+                    <span>All campaigns</span>
+                </div>
+
+                <div class="stat-card">
+                    <p>Active Campaigns</p>
+                    <h2 id="activeCampaigns">0</h2>
+                    <span>Currently active</span>
+                </div>
+
+                <div class="stat-card">
+                    <p>Total Budget</p>
+                    <h2 id="totalBudget">₹0</h2>
+                    <span>Combined campaign budget</span>
+                </div>
+
+                <div class="stat-card">
+                    <p>AI Assistant</p>
+                    <h2>Online</h2>
+                    <span>Llama 3.2 local model</span>
+                </div>
+            </section>
+
+            <!-- Campaigns -->
+            <section class="content-card" id="campaigns">
+
+                <div class="section-header">
+                    <div>
+                        <h2>Campaign Management</h2>
+                        <p>Create and manage your campaigns.</p>
+                    </div>
+
+                    <button id="addCampaignBtn">
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>
+                        Create Campaign
+                    </button>
+                </div>
+
+                <!-- Campaign Form -->
+                <div id="campaignForm" class="campaign-form hidden">
+                    <h3>Create New Campaign</h3>
+
+                    <input type="text" id="campaignName" placeholder="Campaign Name">
+
+                    <textarea id="campaignDescription" placeholder="Campaign Description"></textarea>
+
+                    <input type="text" id="targetAudience" placeholder="Target Audience">
+
+                    <input type="number" id="campaignBudget" placeholder="Campaign Budget" min="0">
+
+                    <div class="form-buttons">
+                        <button id="saveCampaignBtn">Save Campaign</button>
+                        <button id="cancelCampaignBtn" class="secondary-btn">Cancel</button>
+                    </div>
+                </div>
+
+                <!-- Edit Campaign Form -->
+                <form id="editCampaignForm" class="campaign-form edit-campaign-form hidden">
+                    <div class="edit-form-heading">
+                        <div>
+                            <h3>Edit Campaign</h3>
+                            <p>Update one or more details. Unchanged values will be kept.</p>
+                        </div>
+                    </div>
+
+                    <div class="edit-form-fields">
+                        <div class="edit-input-group">
+                            <label for="editCampaignName">Campaign name</label>
+                            <input type="text" id="editCampaignName" required>
+                        </div>
+
+                        <div class="edit-input-group">
+                            <label for="editTargetAudience">Target audience</label>
+                            <input type="text" id="editTargetAudience">
+                        </div>
+
+                        <div class="edit-input-group edit-description-group">
+                            <label for="editCampaignDescription">Description</label>
+                            <textarea id="editCampaignDescription"></textarea>
+                        </div>
+
+                        <div class="edit-input-group">
+                            <label for="editCampaignBudget">Budget (₹)</label>
+                            <input type="number" id="editCampaignBudget" min="0" step="any" required>
+                        </div>
+                    </div>
+
+                    <p id="editCampaignStatus" role="status" aria-live="polite"></p>
+
+                    <div class="form-buttons">
+                        <button type="submit" id="saveEditedCampaignBtn">Save Changes</button>
+                        <button type="button" id="cancelEditCampaignBtn" class="secondary-btn">Cancel</button>
+                    </div>
+                </form>
+
+                <!-- Campaign Search and Filter -->
+                <div class="campaign-filters">
+                    <input type="text" id="campaignSearch" placeholder="Search campaigns by name...">
+
+                    <select id="campaignStatusFilter">
+                        <option value="all">All Campaigns</option>
+                        <option value="Draft">Draft</option>
+                        <option value="Active">Active</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+
+                <!-- Campaign List -->
+                <div id="campaignList">
+                    <p class="empty-message">Loading campaigns...</p>
+                </div>
+
+            </section>
+
+            <!-- AI Campaign Generator -->
+            <section class="content-card" id="generator">
+
+                <div class="section-header">
+                    <div>
+                        <h2>AI Campaign Generator</h2>
+                        <p>Generate marketing campaigns using your local Llama 3.2 AI model.</p>
+                    </div>
+                </div>
+
+                <div class="campaign-generator-form">
+                    <div class="generator-input-group">
+                        <label for="generatorProduct">Product or Service</label>
+                        <input type="text" id="generatorProduct" placeholder="Example: Running Shoes">
+                    </div>
+
+                    <div class="generator-input-group">
+                        <label for="generatorObjective">Campaign Objective</label>
+                        <input type="text" id="generatorObjective" placeholder="Example: Increase sales">
+                    </div>
+
+                    <div class="generator-input-group">
+                        <label for="generatorAudience">Target Audience</label>
+                        <input type="text" id="generatorAudience" placeholder="Example: People aged 18-30">
+                    </div>
+
+                    <div class="generator-input-group">
+                        <label for="generatorBudget">Campaign Budget (₹)</label>
+                        <input type="number" id="generatorBudget" placeholder="Example: 20000" min="0">
+                    </div>
+
+                    <div class="generator-input-group">
+                        <label for="generatorPlatform">Marketing Platform</label>
+                        <select id="generatorPlatform">
+                            <option value="">Select Platform</option>
+                            <option value="Instagram">Instagram</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="Google Ads">Google Ads</option>
+                            <option value="YouTube">YouTube</option>
+                            <option value="LinkedIn">LinkedIn</option>
+                            <option value="Email Marketing">Email Marketing</option>
+                        </select>
+                    </div>
+
+                    <button type="button" id="generateCampaignBtn">Generate AI Campaign</button>
+                    <p id="generatorStatus"></p>
+                </div>
+
+                <!-- Generated Campaign Result -->
+                <div id="generatedCampaignResult" class="generated-campaign-result hidden">
+                    <h3>Generated Campaign</h3>
+
+                    <div class="generated-result-item">
+                        <h4>Campaign Name</h4>
+                        <p id="generatedCampaignName"></p>
+                    </div>
+
+                    <div class="generated-result-item">
+                        <h4>Marketing Strategy</h4>
+                        <p id="generatedStrategy"></p>
+                    </div>
+
+                    <div class="generated-result-item">
+                        <h4>Advertisement Headline</h4>
+                        <p id="generatedHeadline"></p>
+                    </div>
+
+                    <div class="generated-result-item">
+                        <h4>Advertisement Description</h4>
+                        <p id="generatedDescription"></p>
+                    </div>
+
+                    <div class="generated-result-item">
+                        <h4>Target Audience</h4>
+                        <p id="generatedTargetAudience"></p>
+                    </div>
+
+                    <div class="generated-result-item">
+                        <h4>Call to Action</h4>
+                        <p id="generatedCTA"></p>
+                    </div>
+
+                    <button id="saveGeneratedCampaignBtn" type="button">Save Generated Campaign</button>
+                    <p id="saveCampaignStatus"></p>
+                </div>
+
+            </section>
+
+            <!-- AI Assistant -->
+            <section class="content-card assistant-panel hidden" id="assistant"
+                role="dialog" aria-labelledby="assistantTitle" aria-modal="false">
+
+                <div id="assistantResizeHandle" class="assistant-resize-handle"
+                    role="separator" aria-orientation="vertical" aria-label="Resize chat width"
+                    aria-valuemin="360" aria-valuemax="1100" aria-valuenow="520"
+                    tabindex="0" title="Drag to resize"></div>
+
+                <div class="section-header">
+                    <div>
+                        <h2 id="assistantTitle">AI Marketing Assistant</h2>
+                        <p>Generate marketing ideas using Llama 3.2.</p>
+                    </div>
+
+                    <button type="button" id="closeAssistantBtn" class="assistant-close-btn"
+                        aria-label="Close AI assistant" title="Close assistant">
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+                    </button>
+                </div>
+
+                <!-- PDF Upload -->
+                <div class="pdf-upload-area">
+                    <h3>Upload PDF Knowledge</h3>
+                    <p>Upload a PDF document so your AI assistant can answer questions using its content.</p>
+
+                    <input type="file" id="pdfFile" accept=".pdf,application/pdf">
+
+                    <button type="button" id="uploadPdfBtn">Upload PDF</button>
+                    <p id="uploadStatus"></p>
+                </div>
+
+                <!-- Chat Messages -->
+                <div id="chatBox" class="chat-box">
+                    <div class="bot-message">
+                        Hello! I'm your AI marketing assistant.
+                        Tell me what type of campaign you want to create.
+                    </div>
+                </div>
+
+                <!-- Chat Input -->
+                <div class="chat-input-area">
+                    <input type="text" id="userMessage" placeholder="Ask me to create a marketing campaign...">
+                    <button id="sendBtn">Send</button>
+                </div>
+
+            </section>
+
+            <!-- Analytics -->
+            <section class="content-card" id="analytics">
+
+                <div class="section-header">
+                    <div>
+                        <h2>Campaign Analytics</h2>
+                        <p>Insights calculated from your saved campaigns.</p>
+                    </div>
+
+                    <button id="refreshAnalyticsBtn" class="secondary-btn">Refresh Analytics</button>
+                </div>
+
+                <div class="analytics-grid">
+                    <div class="analytics-card">
+                        <p>Total Campaigns</p>
+                        <h2 id="analyticsTotal">0</h2>
+                    </div>
+
+                    <div class="analytics-card">
+                        <p>Active Campaigns</p>
+                        <h2 id="analyticsActive">0</h2>
+                    </div>
+
+                    <div class="analytics-card">
+                        <p>Draft Campaigns</p>
+                        <h2 id="analyticsDraft">0</h2>
+                    </div>
+
+                    <div class="analytics-card">
+                        <p>Average Budget</p>
+                        <h2 id="averageBudget">₹0</h2>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Campaign Budget Distribution</h3>
+                    <div id="budgetChart">
+                        <p class="empty-message">Analytics will appear here.</p>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Campaign Status</h3>
+                    <div id="statusChart"></div>
+                </div>
+
+            </section>
+
+            <!-- ADMIN-ONLY USER MANAGEMENT -->
+            <section class="content-card hidden" id="userManagement">
+
+                <div class="section-header">
+                    <div>
+                        <h2>User Management</h2>
+                        <p>View registered users and manage their access roles.</p>
+                    </div>
+
+                    <button type="button" id="refreshUsersBtn" class="secondary-btn">
+                        Refresh Users
+                    </button>
+                </div>
+
+                <p id="userManagementStatus" role="status" aria-live="polite"></p>
+
+                <div class="table-responsive">
+                    <table class="user-management-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Current Role</th>
+                                <th>Change Role</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="usersTableBody">
+                            <tr>
+                                <td colspan="6">Click Refresh Users to load registered users.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </section>
+
+            <!-- Settings -->
+            <section class="content-card" id="settings">
+                <h2>Settings</h2>
+
+                <div class="settings-item">
+                    <div>
+                        <h3>AI Model</h3>
+                        <p>Local Ollama model: Llama 3.2</p>
+                    </div>
+                    <span class="status-label">Configured</span>
+                </div>
+
+                <div class="settings-item">
+                    <div>
+                        <h3>Backend API</h3>
+                        <p>FastAPI running on port 8000</p>
+                    </div>
+                    <span class="status-label">Configured</span>
+                </div>
+
+                <div class="settings-item">
+                    <div>
+                        <h3>Database</h3>
+                        <p>PostgreSQL campaign storage</p>
+                    </div>
+                    <span class="status-label">Configured</span>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- AI Assistant Floating Button -->
+    <button type="button" id="assistantToggleBtn" class="assistant-toggle-btn"
+        aria-controls="assistant" aria-expanded="false" aria-label="Open AI assistant"
+        title="Chat with AI assistant">
+
+        <svg class="assistant-chat-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-6.5A7.5 7.5 0 1 1 20 11.5Z"></path>
+            <path d="M8 11h.01M12 11h.01M16 11h.01"></path>
+        </svg>
+
+        <svg class="assistant-close-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="m6 6 12 12M18 6 6 18"></path>
+        </svg>
+    </button>
+
+    <script src="script.js"></script>
+
+</body>
+</html>

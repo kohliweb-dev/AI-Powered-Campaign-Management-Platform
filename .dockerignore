@@ -1,0 +1,19 @@
+<!-- This file tells Docker which files and folders it should not copy into the Docker image. -->
+<!-- For example, we don't need to copy your local .venv, because Docker will install its own Python dependencies. -->
+
+
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.git/
+.env
+.env.*
+!.env.example
+chroma_db/
+campaign_search/
+*.db
+*.sqlite3
+.vscode/
+.idea/
