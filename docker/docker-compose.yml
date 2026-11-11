@@ -1,11 +1,13 @@
+name: enterprise_capstone
+
 services:
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     container_name: enterprise-capstone-backend
     env_file:
-      - .env
+      - ../.env
     environment:
       DOCKER_ENV: "true"
       OLLAMA_BASE_URL: "http://host.docker.internal:11434"
@@ -14,8 +16,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./chroma_db:/app/chroma_db
-      - ./campaign_search:/app/campaign_search
+      - ../chroma_db:/app/chroma_db
+      - ../campaign_search:/app/campaign_search
     restart: unless-stopped
 
   frontend:
@@ -24,12 +26,10 @@ services:
     ports:
       - "5500:80"
     volumes:
-      - ./frontend:/usr/share/nginx/html:ro
+      - ../frontend:/usr/share/nginx/html:ro
     depends_on:
       - backend
     restart: unless-stopped
-
-
 
 
     # What this file does:
