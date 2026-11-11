@@ -1,12 +1,12 @@
 # AI-Powered Campaign Management Platform
 
-An AI-powered campaign management platform built using FastAPI, PostgreSQL, MongoDB, Redis, Ollama, RAG, Docker, Kubernetes, Prometheus, and Grafana.
+An AI-powered campaign management platform built using **FastAPI, PostgreSQL, MongoDB, Redis, Ollama, RAG, Docker, Kubernetes, Prometheus, and Grafana**.
 
 ## Project Overview
 
-This platform helps users create, manage, search, and analyze marketing campaigns using AI-powered features.
+The AI-Powered Campaign Management Platform helps users create, manage, search, and analyze marketing campaigns using AI-powered features.
 
-It also includes an AI chatbot that can answer questions using uploaded PDF documents through Retrieval-Augmented Generation (RAG).
+The platform also includes an AI chatbot that can answer questions using uploaded PDF documents through **Retrieval-Augmented Generation (RAG)**.
 
 ## Features
 
@@ -14,11 +14,11 @@ It also includes an AI chatbot that can answer questions using uploaded PDF docu
 - **Campaign Management:** Create, view, update, and delete marketing campaigns.
 - **AI Campaign Generator:** Generate campaign ideas and marketing strategies using local Ollama Llama 3.2.
 - **AI-Powered Campaign Search:** Search campaigns using semantic search.
-- **AI Chatbot:** Chat with an AI assistant.
+- **AI Chatbot:** Interact with an AI assistant and ask questions.
 - **PDF-Based RAG:** Upload PDF documents, extract text, generate embeddings, and retrieve relevant information.
-- **Analytics Dashboard:** View campaign and API analytics.
-- **Caching:** Redis caching for improved performance.
-- **Monitoring:** Prometheus metrics and Grafana dashboards.
+- **Analytics Dashboard:** View campaign statistics and API analytics.
+- **Caching:** Redis caching for improved application performance.
+- **Monitoring:** Prometheus metrics collection and Grafana dashboards.
 - **Containerization:** Docker and Docker Compose.
 - **Orchestration:** Kubernetes deployments and services.
 
@@ -74,18 +74,21 @@ Enterprise_Capstone/
 
 ### Prerequisites
 
+Make sure the following tools are installed:
+
 - Python
 - Docker Desktop
-- PostgreSQL
-- MongoDB
-- Redis
+- PostgreSQL (if running outside Docker)
+- MongoDB (if running outside Docker)
+- Redis (if running outside Docker)
 - Ollama
-- Kubernetes enabled in Docker Desktop
+- Kubernetes enabled in Docker Desktop (for Kubernetes deployment)
 
 ### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/kohliweb-dev/AI-Powered-Campaign-Management-Platform.git
+
 cd AI-Powered-Campaign-Management-Platform
 ```
 
@@ -109,29 +112,35 @@ pip install -r requirements.txt
 
 ### 4. Configure Environment Variables
 
-Create a `.env` file in the project root and configure your database URLs and application secret.
+Create a `.env` file in the project root directory.
 
-Required configuration includes:
+Configure the required environment variables according to your local database and application setup:
 
-- `POSTGRES_URL`
-- `MONGO_URL`
-- `REDIS_URL`
-- `SECRET_KEY`
+```env
+POSTGRES_URL=your_postgresql_connection_string
+MONGO_URL=your_mongodb_connection_string
+REDIS_URL=your_redis_connection_string
+SECRET_KEY=your_secret_key
+```
 
-Keep all credentials private. Never commit your `.env` file.
+Add any additional settings required by your configuration, such as the Ollama service URL.
+
+**Important:** Never upload your `.env` file or expose database credentials and secret keys on GitHub.
 
 ### 5. Start Ollama
 
-Install Ollama and download the required models:
+Install Ollama and download the required AI models:
 
 ```bash
 ollama pull llama3.2
 ollama pull nomic-embed-text
 ```
 
-Make sure the Ollama service is running.
+Make sure the Ollama service is running before using the AI generator, chatbot, and PDF-based RAG features.
 
 ### 6. Run the Backend
+
+Start the FastAPI backend:
 
 ```bash
 uvicorn backend.main:app --reload
@@ -143,50 +152,87 @@ http://localhost:8000/docs
 
 ### 7. Run the Frontend
 
-Open the frontend using a local web server, or use the Docker Compose setup.
+Open the frontend using a local development server or use the Docker Compose deployment.
 
 ## Docker Deployment
 
-Build and start the application using:
+Build and start the application using Docker Compose:
 
 ```bash
 docker compose up --build -d
 ```
 
-Frontend:
+Check running containers:
 
-http://localhost:5500
+```bash
+docker compose ps
+```
 
-Backend API:
+Application URLs:
 
-http://localhost:8001/docs
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5500 |
+| Backend API | http://localhost:8001/docs |
+
+Stop the containers:
+
+```bash
+docker compose down
+```
+
+Note: Make sure the required environment variables and Ollama connection are configured correctly for your Docker environment.
 
 ## Monitoring
 
-The project integrates Prometheus for collecting backend metrics and Grafana for monitoring and visualization.
+The platform integrates **Prometheus** and **Grafana** for application monitoring and visualization.
 
-The monitoring dashboard includes:
+The monitoring setup includes:
 
 - Total API Requests
 - 95th Percentile API Response Time
 - API Requests Per Second
 - Backend Availability
 
+Prometheus collects application metrics, while Grafana provides dashboards for visualizing and analyzing the metrics.
+
 ## Kubernetes Deployment
 
-Kubernetes manifests are available in the `kubernetes/` directory.
+Kubernetes configuration files are available in the `kubernetes/` directory.
 
-The project includes backend and frontend deployments and services.
+The project includes Kubernetes deployments and services for running the application components.
+
+Make sure Kubernetes is enabled in Docker Desktop before applying the manifests.
+
+Example commands:
+
+```bash
+kubectl apply -f kubernetes/
+```
+
+Check the deployment status:
+
+```bash
+kubectl get pods
+kubectl get services
+```
+
+Note: Apply the manifests according to their dependencies and ensure the required Kubernetes secrets and configuration are available.
 
 ## AI and RAG Workflow
 
-1. User uploads a PDF document.
-2. Text is extracted from the PDF.
-3. Text is divided into smaller chunks.
-4. Ollama generates embeddings.
-5. Embeddings are stored in ChromaDB.
-6. User asks a question through the chatbot.
-7. Relevant document chunks are retrieved and used to generate an answer.
+The platform uses Retrieval-Augmented Generation (RAG) to answer questions using information from uploaded PDF documents.
+
+Workflow:
+
+1. The user uploads a PDF document.
+2. The application extracts text from the PDF.
+3. The extracted text is divided into smaller chunks.
+4. Ollama generates embeddings using `nomic-embed-text`.
+5. The embeddings are stored in ChromaDB.
+6. The user asks a question through the AI chatbot.
+7. Relevant document chunks are retrieved using semantic similarity search.
+8. The retrieved information is provided to the AI model to generate a relevant response.
 
 ## Future Improvements
 
@@ -199,6 +245,10 @@ The project includes backend and frontend deployments and services.
 **HK**
 
 GitHub: https://github.com/kohliweb-dev
+
+## Project Repository
+
+https://github.com/kohliweb-dev/AI-Powered-Campaign-Management-Platform
 
 ---
 
