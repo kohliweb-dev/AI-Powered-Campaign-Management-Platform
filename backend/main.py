@@ -56,7 +56,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://127.0.0.1:5500",
-        "http://localhost:5500"
+        "http://localhost:5500",
+        "http://127.0.0.1:30082",
+        "http://localhost:30082"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -74,10 +76,9 @@ llm = ChatOllama(
     base_url=settings.OLLAMA_BASE_URL
 )
 
-
-# ==========================================
+# =========================================
 # REDIS CACHE
-# ==========================================
+# =========================================
 
 CACHE_VERSION_KEY = "campaigns:version"
 
@@ -799,9 +800,10 @@ Do not invent discounts or special offers that were not provided.
 """
 
         campaign_llm = ChatOllama(
-            model="llama3.2",
-            temperature=0.2,
-            format="json"
+         model="llama3.2",
+         temperature=0.2,
+         format="json",
+          base_url=settings.OLLAMA_BASE_URL
         )
 
         ai_result = campaign_llm.invoke(prompt)

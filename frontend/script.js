@@ -1022,19 +1022,22 @@ async function generateCampaign() {
     resultSection.classList.add("hidden");
 
     try {
-        const response = await fetch(`${API_URL}/campaigns/generate`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                product,
-                objective,
-                target_audience: targetAudience,
-                budget: Number(budgetInput),
-                platform
-            })
-        });
+        const response = await authenticatedFetch(
+            `${API_URL}/campaigns/generate`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    product,
+                    objective,
+                    target_audience: targetAudience,
+                    budget: Number(budgetInput),
+                    platform
+                })
+            }
+        );
 
         const data = await response.json();
 
@@ -1193,7 +1196,7 @@ async function uploadPDF() {
         "Uploading and processing your PDF...";
 
     try {
-        const response = await fetch(`${API_URL}/documents/upload`, {
+        const response = await authenticatedFetch(`${API_URL}/documents/upload`, {
             method: "POST",
             body: formData
         });
@@ -1258,7 +1261,7 @@ async function sendMessage() {
     chatBox.scrollTop = chatBox.scrollHeight;
 
     try {
-        const response = await fetch(`${API_URL}/chat`, {
+        const response = await authenticatedFetch(`${API_URL}/chat`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -1268,16 +1271,18 @@ async function sendMessage() {
             })
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            throw new Error("AI request failed.");
+            throw new Error(
+                data.detail || data.message || "AI request failed."
+            );
         }
 
-        const data = await response.json();
         loadingMessage.textContent = data.ai_response;
 
     } catch (error) {
-        loadingMessage.textContent =
-            "Unable to contact AI. Check FastAPI, MongoDB and Ollama.";
+        loadingMessage.textContent = `Unable to get an AI response: ${error.message}`;
 
         console.error("Chat error:", error);
 

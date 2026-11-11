@@ -28,5 +28,11 @@ spec:
             - secretRef:
                 name: capstone-secrets
 
+          env:
+            - name: DOCKER_ENV
+              value: "true"
+            - name: OLLAMA_BASE_URL
+              value: "http://host.docker.internal:11434"
+
           ports:
             - containerPort: 8000

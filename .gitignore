@@ -11,3 +11,10 @@ campaign_search/
 *.log
 
 *.tar
+# Local database backups
+database/backups/
+*.dump
+grafana-backup.db
+
+# Recovery and temporary files
+recovery_backup/
