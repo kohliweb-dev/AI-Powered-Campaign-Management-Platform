@@ -252,4 +252,13 @@ https://github.com/kohliweb-dev/AI-Powered-Campaign-Management-Platform
 
 ---
 
+## Application Screenshots
+
+### Main Dashboard
+![Main Dashboard](screenshots/login_page.png)
+
+### AI Chatbot and RAG
+![AI Chatbot](screenshots/AiIchatbot.png)
+
+
 *Developed as an Enterprise Capstone Project.*
