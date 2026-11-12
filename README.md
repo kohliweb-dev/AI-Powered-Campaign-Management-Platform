@@ -181,7 +181,7 @@ Stop the containers:
 docker compose down
 ```
 
-Note: Make sure the required environment variables and Ollama connection are configured correctly for your Docker environment.
+Docker Compose starts MongoDB for chat history and persists its data in the `mongodb_data` volume. The backend connects to that MongoDB service automatically; `MONGO_URL` in `.env` is used when running the backend outside Docker. Make sure the other required environment variables and Ollama connection are configured correctly for your Docker environment.
 
 ## Monitoring
 
@@ -258,7 +258,20 @@ https://github.com/kohliweb-dev/AI-Powered-Campaign-Management-Platform
 ![Main Dashboard](screenshots/login_page.png)
 
 ### AI Chatbot and RAG
-![AI Chatbot](screenshots/AiIchatbot.png)
+![AI Chatbot](screenshots/AIchatbot.png)
+
+
+
+## Grafana graphs screenshots
+
+## total API request
+![total API request](screenshots/total-api-requests.png)
+
+## average api response time
+![average API response time](screenshots/average-api-response-time.png)
+
+## application-health-status
+![application-health-status](screenshots/application-health-status.png)
 
 
 *Developed as an Enterprise Capstone Project.*

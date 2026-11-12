@@ -1,8 +1,20 @@
 name: enterprise_capstone
 
 services:
+  mongodb:
+    image: mongo:7
+    container_name: enterprise-capstone-mongodb
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
   backend:
-    build:
+    build:l
       context: ..
       dockerfile: docker/Dockerfile
     container_name: enterprise-capstone-backend
@@ -11,10 +23,14 @@ services:
     environment:
       DOCKER_ENV: "true"
       OLLAMA_BASE_URL: "http://host.docker.internal:11434"
+      MONGO_URL: "mongodb://mongodb:27017"
     ports:
       - "8001:8000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      mongodb:
+        condition: service_healthy
     volumes:
       - ../chroma_db:/app/chroma_db
       - ../campaign_search:/app/campaign_search
@@ -31,11 +47,13 @@ services:
       - backend
     restart: unless-stopped
 
+volumes:
+  mongodb_data:
 
-    # What this file does:
+# What this file does:
 # - backend: runs your FastAPI application inside Docker.
 # - frontend: serves your HTML, CSS and JavaScript using Nginx.
+# - mongodb: provides persistent MongoDB storage for chat history.
 # - volumes: preserve your ChromaDB data outside the container.
 # - host.docker.internal: allows the backend container to reach
-#  your existing PostgreSQL, MongoDB, Redis and Ollama services
-#  on Windows.
+#   your existing PostgreSQL, Redis and Ollama services on Windows.
