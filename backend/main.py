@@ -21,6 +21,9 @@ from backend.mongodb import chat_collection
 
 from backend.rag import (
     add_pdf,
+    list_documents,
+    delete_document,
+    delete_user_embeddings,
     search_documents,
     add_campaign,
     delete_campaign,
@@ -33,6 +36,8 @@ from backend.security import (
     create_access_token,
     verify_access_token
 )
+
+MAX_PDF_SIZE = 10 * 1024 * 1024
 
 
 # ==========================================
@@ -60,6 +65,10 @@ app.add_middleware(
         "http://127.0.0.1:30082",
         "http://localhost:30082"
     ],
+    allow_origin_regex=(
+        r"https?://(?:[a-zA-Z0-9.-]+|\[[0-9a-fA-F:]+\]):"
+        r"(?:5500|30082)"
+    ),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -92,6 +101,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 class ChatMessage(BaseModel):
     user_message: str
+    document_hash: str | None = None
 
 
 # New request model for semantic campaign search
@@ -329,6 +339,65 @@ def update_user_role(
     db.refresh(user)
 
     return user
+
+
+@app.delete("/admin/users/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_admin_user)
+):
+    if user_id == admin.id:
+        raise HTTPException(
+            status_code=400,
+            detail="You cannot delete your own account."
+        )
+
+    user = db.query(models.User).filter(
+        models.User.id == user_id
+    ).first()
+
+    if user is None:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found."
+        )
+
+    campaign_count = db.query(models.Campaign).filter(
+        models.Campaign.owner_id == user_id
+    ).count()
+
+    try:
+        embedding_counts = delete_user_embeddings(user_id)
+        deleted_chats = chat_collection.delete_many(
+            {"user_id": user_id}
+        ).deleted_count
+
+        db.query(models.Campaign).filter(
+            models.Campaign.owner_id == user_id
+        ).delete(synchronize_session=False)
+        db.delete(user)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print("USER DELETE ERROR:", repr(e))
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Cleanup did not finish. The account was kept; retry deletion "
+                "to finish any remaining cleanup."
+            )
+        ) from e
+
+    invalidate_campaign_cache()
+
+    return {
+        "message": "User and associated data deleted successfully.",
+        "user_id": user_id,
+        "campaigns_deleted": campaign_count,
+        "chats_deleted": deleted_chats,
+        **embedding_counts
+    }
 
 
 # ==========================================
@@ -646,8 +715,19 @@ def delete_campaign_endpoint(
 # PDF UPLOAD
 # ==========================================
 
+@app.get("/documents")
+def get_documents(
+    current_user: models.User = Depends(get_authenticated_user)
+):
+    owner_id = None if current_user.role == "admin" else current_user.id
+    return list_documents(owner_id=owner_id)
+
+
 @app.post("/documents/upload")
-async def upload_pdf(file: UploadFile = File(...)):
+async def upload_pdf(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_authenticated_user)
+):
     try:
         if not file.filename or not file.filename.lower().endswith(".pdf"):
             raise HTTPException(
@@ -655,7 +735,7 @@ async def upload_pdf(file: UploadFile = File(...)):
                 detail="Only PDF files are allowed."
             )
 
-        file_bytes = await file.read()
+        file_bytes = await file.read(MAX_PDF_SIZE + 1)
 
         if not file_bytes:
             raise HTTPException(
@@ -663,13 +743,17 @@ async def upload_pdf(file: UploadFile = File(...)):
                 detail="The uploaded PDF is empty."
             )
 
-        if len(file_bytes) > 10 * 1024 * 1024:
+        if len(file_bytes) > MAX_PDF_SIZE:
             raise HTTPException(
-                status_code=400,
+                status_code=413,
                 detail="PDF size must be 10 MB or less."
             )
 
-        result = add_pdf(file_bytes, file.filename)
+        result = add_pdf(
+            file_bytes,
+            file.filename,
+            owner_id=current_user.id
+        )
 
         return result
 
@@ -688,39 +772,86 @@ async def upload_pdf(file: UploadFile = File(...)):
         await file.close()
 
 
+@app.delete("/documents/{file_hash}")
+def delete_pdf(
+    file_hash: str,
+    current_user: models.User = Depends(get_authenticated_user)
+):
+    try:
+        result = delete_document(
+            file_hash,
+            owner_id=(
+                None if current_user.role == "admin" else current_user.id
+            )
+        )
+    except Exception as e:
+        print("PDF DELETE ERROR:", repr(e))
+        raise HTTPException(
+            status_code=500,
+            detail="PDF deletion failed. Check ChromaDB."
+        ) from e
+
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="PDF not found."
+        )
+
+    return {
+        "message": "PDF deleted successfully.",
+        **result
+    }
+
+
+
+
 # ==========================================
 # AI CHATBOT WITH RAG
 # ==========================================
 
 @app.post("/chat")
-def save_chat(message: ChatMessage):
+def save_chat(
+    message: ChatMessage,
+    current_user: models.User = Depends(get_authenticated_user)
+):
     try:
-        context = search_documents(message.user_message)
+        owner_id = None if current_user.role == "admin" else current_user.id
+        context = search_documents(
+            message.user_message,
+            file_hash=message.document_hash,
+            owner_id=owner_id
+        )
 
         if context:
             prompt = f"""
 You are an AI marketing assistant.
 
-Answer the user's question using the following information
-retrieved from uploaded PDF documents.
+Answer using the relevant information retrieved from the uploaded PDF.
+Do not claim information came from the PDF unless it is supported by
+the context. If the context does not contain the answer, say so clearly.
 
 PDF CONTEXT:
 {context}
 
 USER QUESTION:
 {message.user_message}
-
-If the answer is not available in the PDF context,
-clearly tell the user that the uploaded documents
-do not contain that information.
 """
         else:
-            prompt = message.user_message
+            prompt = f"""
+You are an AI marketing assistant. No relevant information was retrieved
+from the uploaded PDF documents for this question. Tell the user this,
+then provide a general answer only if useful and clearly label it as
+general information rather than information from the PDF.
+
+USER QUESTION:
+{message.user_message}
+"""
 
         ai_result = llm.invoke(prompt)
         ai_response = ai_result.content
 
         chat_record = {
+            "user_id": current_user.id,
             "user_message": message.user_message,
             "ai_response": ai_response,
             "created_at": datetime.now(timezone.utc)
@@ -744,15 +875,24 @@ do not contain that information.
             detail="Chatbot error. Check that Ollama is running and required models are available."
         )
 
+    
+
 
 # ==========================================
 # CHAT HISTORY
 # ==========================================
 
 @app.get("/chat/history")
-def get_chat_history():
+def get_chat_history(
+    current_user: models.User = Depends(get_authenticated_user)
+):
+    query = (
+        chat_collection.find()
+        if current_user.role == "admin"
+        else chat_collection.find({"user_id": current_user.id})
+    )
     history = list(
-        chat_collection.find().sort("_id", -1).limit(50)
+        query.sort("_id", -1).limit(50)
     )
 
     for item in history:
@@ -769,7 +909,10 @@ def get_chat_history():
     "/campaigns/generate",
     response_model=schemas.CampaignGenerateResponse
 )
-def generate_campaign(request: schemas.CampaignGenerateRequest):
+def generate_campaign(
+    request: schemas.CampaignGenerateRequest,
+    _: models.User = Depends(get_authenticated_user)
+):
     try:
         prompt = f"""
 You are an expert digital marketing campaign strategist.

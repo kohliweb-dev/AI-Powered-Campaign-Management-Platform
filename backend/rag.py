@@ -76,7 +76,7 @@ def split_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
 # PDF UPLOAD AND EMBEDDING
 # ==========================================
 
-def add_pdf(file_bytes, filename):
+def add_pdf(file_bytes, filename, owner_id):
     """Extract PDF text, generate embeddings and save in ChromaDB."""
 
     start_time = time.perf_counter()
@@ -84,7 +84,12 @@ def add_pdf(file_bytes, filename):
     file_hash = hashlib.sha256(file_bytes).hexdigest()
 
     existing = collection.get(
-        where={"file_hash": file_hash},
+        where={
+            "$and": [
+                {"file_hash": file_hash},
+                {"owner_id": int(owner_id)}
+            ]
+        },
         limit=1
     )
 
@@ -93,6 +98,7 @@ def add_pdf(file_bytes, filename):
             "filename": filename,
             "chunks": 0,
             "message": "This PDF has already been uploaded.",
+            "file_hash": file_hash,
             "already_exists": True
         }
 
@@ -132,7 +138,7 @@ def add_pdf(file_bytes, filename):
         )
 
     ids = [
-        f"{file_hash}_{index}"
+        f"{owner_id}_{file_hash}_{index}"
         for index in range(len(chunks))
     ]
 
@@ -140,6 +146,7 @@ def add_pdf(file_bytes, filename):
         {
             "filename": filename,
             "file_hash": file_hash,
+            "owner_id": int(owner_id),
             "chunk_index": index
         }
         for index in range(len(chunks))
@@ -161,6 +168,7 @@ def add_pdf(file_bytes, filename):
         "chunks": len(chunks),
         "processing_time": elapsed_time,
         "message": "PDF uploaded and processed successfully.",
+        "file_hash": file_hash,
         "already_exists": False
     }
 
@@ -169,8 +177,106 @@ def add_pdf(file_bytes, filename):
 # PDF SEMANTIC SEARCH
 # ==========================================
 
-def search_documents(question):
-    """Find the most relevant PDF text for a question."""
+def list_documents(owner_id=None):
+    """Return indexed PDFs, scoped to an owner when one is provided."""
+
+    where = {"owner_id": int(owner_id)} if owner_id is not None else None
+    results = collection.get(include=["metadatas"], where=where)
+    documents_by_hash = {}
+
+    for metadata in results.get("metadatas") or []:
+        if not metadata:
+            continue
+
+        file_hash = metadata.get("file_hash")
+        if not file_hash:
+            continue
+
+        document = documents_by_hash.setdefault(
+            file_hash,
+            {
+                "file_hash": file_hash,
+                "filename": metadata.get("filename") or "Uploaded PDF",
+                "chunks": 0
+            }
+        )
+        document["chunks"] += 1
+
+    return sorted(
+        documents_by_hash.values(),
+        key=lambda document: document["filename"].casefold()
+    )
+
+
+def delete_document(file_hash, owner_id=None):
+    """Delete indexed chunks for a PDF, optionally scoped to its owner."""
+    where = {"file_hash": file_hash}
+    if owner_id is not None:
+        where = {
+            "$and": [
+                where,
+                {"owner_id": int(owner_id)}
+            ]
+        }
+
+    results = collection.get(where=where, include=["metadatas"])
+    ids = results.get("ids") or []
+
+    if not ids:
+        return None
+
+    metadatas = results.get("metadatas") or []
+    filename = next(
+        (
+            metadata.get("filename")
+            for metadata in metadatas
+            if metadata and metadata.get("filename")
+        ),
+        "Uploaded PDF"
+    )
+
+    collection.delete(ids=ids)
+
+    return {
+        "file_hash": file_hash,
+        "filename": filename,
+        "chunks_deleted": len(ids)
+    }
+
+
+def delete_user_embeddings(owner_id):
+    """Delete PDF and campaign embeddings belonging to a user."""
+    owner_filter = {"owner_id": int(owner_id)}
+
+    pdf_ids = collection.get(where=owner_filter).get("ids") or []
+    campaign_ids = collection2.get(where=owner_filter).get("ids") or []
+
+    if pdf_ids:
+        collection.delete(ids=pdf_ids)
+
+    if campaign_ids:
+        collection2.delete(ids=campaign_ids)
+
+    return {
+        "pdf_chunks_deleted": len(pdf_ids),
+        "campaign_embeddings_deleted": len(campaign_ids)
+    }
+
+
+def search_documents(question, file_hash=None, owner_id=None, limit=5):
+    """Search PDFs within an owner scope, optionally selecting one PDF."""
+
+    filters = []
+    if owner_id is not None:
+        filters.append({"owner_id": int(owner_id)})
+    if file_hash:
+        filters.append({"file_hash": file_hash})
+
+    where = None
+    if len(filters) == 1:
+        where = filters[0]
+    elif filters:
+        where = {"$and": filters}
 
     total_chunks = collection.count()
 
@@ -179,14 +285,32 @@ def search_documents(question):
 
     question_vector = embeddings.embed_query(question)
 
-    results = collection.query(
-        query_embeddings=[question_vector],
-        n_results=min(3, total_chunks)
-    )
+    if where is not None:
+        results = collection.query(
+            query_embeddings=[question_vector],
+            n_results=min(limit, total_chunks),
+            where=where
+        )
+    else:
+        results = collection.query(
+            query_embeddings=[question_vector],
+            n_results=min(limit, total_chunks)
+        )
 
     documents = results.get("documents", [[]])[0]
+    metadatas = results.get("metadatas", [[]])[0]
 
-    return "\n\n".join(documents)
+    formatted_documents = []
+    for index, document in enumerate(documents):
+        if not document:
+            continue
+
+        metadata = metadatas[index] if index < len(metadatas) else {}
+        filename = (metadata or {}).get("filename")
+        source = f"[Source: {filename}]\n" if filename else ""
+        formatted_documents.append(f"{source}{document}")
+
+    return "\n\n".join(formatted_documents)
 
 
 # ==========================================

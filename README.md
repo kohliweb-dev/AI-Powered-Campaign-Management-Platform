@@ -15,7 +15,7 @@ The platform also includes an AI chatbot that can answer questions using uploade
 - **AI Campaign Generator:** Generate campaign ideas and marketing strategies using local Ollama Llama 3.2.
 - **AI-Powered Campaign Search:** Search campaigns using semantic search.
 - **AI Chatbot:** Interact with an AI assistant and ask questions.
-- **PDF-Based RAG:** Upload PDF documents, extract text, generate embeddings, and retrieve relevant information.
+- **PDF-Based RAG:** Upload PDF documents, extract text, generate embeddings, and retrieve relevant information with documents scoped to their owner.
 - **Analytics Dashboard:** View campaign statistics and API analytics.
 - **Caching:** Redis caching for improved application performance.
 - **Monitoring:** Prometheus metrics collection and Grafana dashboards.
@@ -143,29 +143,35 @@ Make sure the Ollama service is running before using the AI generator, chatbot, 
 Start the FastAPI backend:
 
 ```bash
-uvicorn backend.main:app --reload
+uvicorn backend.main:app --reload --port 8001
 ```
 
 Backend API documentation:
 
-http://localhost:8000/docs
+http://localhost:8001/docs
 
 ### 7. Run the Frontend
 
-Open the frontend using a local development server or use the Docker Compose deployment.
+In another terminal, serve the frontend:
+
+```bash
+python -m http.server 5500 --directory frontend
+```
+
+Open http://localhost:5500. The frontend connects to the API on port 8001.
 
 ## Docker Deployment
 
 Build and start the application using Docker Compose:
 
 ```bash
-docker compose up --build -d
+docker compose -f docker/docker-compose.yml up --build -d
 ```
 
 Check running containers:
 
 ```bash
-docker compose ps
+docker compose -f docker/docker-compose.yml ps
 ```
 
 Application URLs:
@@ -178,7 +184,7 @@ Application URLs:
 Stop the containers:
 
 ```bash
-docker compose down
+docker compose -f docker/docker-compose.yml down
 ```
 
 Docker Compose starts MongoDB for chat history and persists its data in the `mongodb_data` volume. The backend connects to that MongoDB service automatically; `MONGO_URL` in `.env` is used when running the backend outside Docker. Make sure the other required environment variables and Ollama connection are configured correctly for your Docker environment.
@@ -207,14 +213,17 @@ Make sure Kubernetes is enabled in Docker Desktop before applying the manifests.
 Example commands:
 
 ```bash
+kubectl apply -f kubernetes/namespace.yaml
+kubectl apply -f monitoring/prometheus-configmap.yaml
 kubectl apply -f kubernetes/
+kubectl apply -f monitoring/
 ```
 
 Check the deployment status:
 
 ```bash
-kubectl get pods
-kubectl get services
+kubectl get pods -n enterprise-capstone
+kubectl get services -n enterprise-capstone
 ```
 
 Note: Apply the manifests according to their dependencies and ensure the required Kubernetes secrets and configuration are available.
@@ -230,9 +239,10 @@ Workflow:
 3. The extracted text is divided into smaller chunks.
 4. Ollama generates embeddings using `nomic-embed-text`.
 5. The embeddings are stored in ChromaDB.
-6. The user asks a question through the AI chatbot.
-7. Relevant document chunks are retrieved using semantic similarity search.
-8. The retrieved information is provided to the AI model to generate a relevant response.
+6. Users can choose only their own uploaded PDFs; administrators can access all PDFs.
+7. The user asks a question through the AI chatbot.
+8. Up to five relevant chunks are retrieved using semantic similarity search.
+9. The retrieved information is provided to the AI model, and the chat indicates whether PDF context was found.
 
 ## Future Improvements
 

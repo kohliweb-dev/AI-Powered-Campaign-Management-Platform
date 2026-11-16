@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CampaignAI | Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=admin-user-delete-1">
 </head>
 
 <body>
@@ -409,6 +409,17 @@
 
                     <button type="button" id="uploadPdfBtn">Upload PDF</button>
                     <p id="uploadStatus"></p>
+
+                    <label for="pdfDocumentSelect">Use PDF for answers</label>
+                    <div class="pdf-selector-row">
+                        <select id="pdfDocumentSelect">
+                            <option value="">All uploaded PDFs</option>
+                        </select>
+                        <button type="button" id="deletePdfBtn" class="delete-pdf-btn" hidden>
+                            Delete
+                        </button>
+                    </div>
+                    <p id="documentStatus" role="status"></p>
                 </div>
 
                 <!-- Chat Messages -->
@@ -500,7 +511,7 @@
                                 <th>Email</th>
                                 <th>Current Role</th>
                                 <th>Change Role</th>
-                                <th>Action</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
 
@@ -561,7 +572,7 @@
         </svg>
     </button>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=admin-user-delete-1"></script>
 
 </body>
 </html>

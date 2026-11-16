@@ -1,5 +1,10 @@
 
-const API_URL = "http://127.0.0.1:8001";
+const API_URL = (() => {
+    const hostname = location.hostname || "127.0.0.1";
+    const apiPort = location.port === "30082" ? "30081" : "8001";
+    const protocol = location.protocol === "https:" ? "https:" : "http:";
+    return `${protocol}//${hostname}:${apiPort}`;
+})();
 
 let campaignsData = [];
 let semanticSearchResults = null;
@@ -77,6 +82,7 @@ function showDashboard(user) {
     }
 
     loadCampaigns();
+    loadPdfDocuments();
 }
 
 function switchAuthMode() {
@@ -307,6 +313,13 @@ async function loadUsers() {
                                         data-user-id="${user.id}">
                                         Save Role
                                     </button>
+                                    <button
+                                        type="button"
+                                        class="delete-user-btn"
+                                        data-user-id="${user.id}"
+                                        data-username="${escapeHTML(user.username)}">
+                                        Delete
+                                    </button>
                                 `
                         }
                     </td>
@@ -393,12 +406,54 @@ async function updateUserRole(userId, button) {
     }
 }
 
+async function deleteUser(userId, button) {
+    const status = document.getElementById("userManagementStatus");
+    const username = button.dataset.username;
+
+    if (!confirm(
+        `Delete ${username} and permanently remove their campaigns, PDFs, and chat history?`
+    )) {
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Deleting...";
+
+    try {
+        const response = await authenticatedFetch(
+            `${API_URL}/admin/users/${userId}`,
+            { method: "DELETE" }
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || "User deletion failed.");
+        }
+
+        await loadUsers();
+        status.textContent =
+            `${username} and their associated data were deleted.`;
+    } catch (error) {
+        status.textContent = error.message;
+        console.error("User deletion error:", error);
+        button.disabled = false;
+        button.textContent = "Delete";
+    }
+}
+
 document.getElementById("usersTableBody").addEventListener(
     "click",
     async function(event) {
-        const button = event.target.closest(".save-user-role-btn");
+        const button = event.target.closest(
+            ".save-user-role-btn, .delete-user-btn"
+        );
 
         if (!button) return;
+
+        if (button.classList.contains("delete-user-btn")) {
+            await deleteUser(button.dataset.userId, button);
+            return;
+        }
 
         await updateUserRole(button.dataset.userId, button);
     }
@@ -1170,6 +1225,102 @@ document.getElementById("saveGeneratedCampaignBtn").addEventListener(
 // PDF UPLOAD
 // ==========================================
 
+async function loadPdfDocuments(preferredFileHash = "") {
+    const select = document.getElementById("pdfDocumentSelect");
+    const deleteButton = document.getElementById("deletePdfBtn");
+    const status = document.getElementById("documentStatus");
+    const selectedFileHash = preferredFileHash || select.value;
+
+    try {
+        const response = await authenticatedFetch(`${API_URL}/documents`);
+        const documents = await response.json();
+
+        if (!response.ok) {
+            throw new Error(documents.detail || "Could not load uploaded PDFs.");
+        }
+
+        select.replaceChildren(new Option("All uploaded PDFs", ""));
+
+        for (const pdf of documents) {
+            select.add(new Option(pdf.filename, pdf.file_hash));
+        }
+
+        select.value = documents.some(
+            document => document.file_hash === selectedFileHash
+        ) ? selectedFileHash : "";
+        updatePdfDeleteButton();
+        status.textContent = documents.length
+            ? `${documents.length} PDF${documents.length === 1 ? "" : "s"} available.`
+            : "No PDFs uploaded yet.";
+
+    } catch (error) {
+        deleteButton.hidden = true;
+        status.textContent = `Could not load uploaded PDFs: ${error.message}`;
+        console.error("PDF list error:", error);
+    }
+}
+
+function updatePdfDeleteButton() {
+    const select = document.getElementById("pdfDocumentSelect");
+    const deleteButton = document.getElementById("deletePdfBtn");
+    const hasSelectedPdf = Boolean(select.value);
+
+    deleteButton.hidden = !hasSelectedPdf;
+    deleteButton.style.display = hasSelectedPdf ? "inline-flex" : "none";
+    deleteButton.disabled = !hasSelectedPdf;
+    deleteButton.textContent = "Delete";
+    deleteButton.dataset.fileHash = select.value;
+    deleteButton.dataset.filename =
+        select.options[select.selectedIndex]?.text || "";
+}
+
+async function deleteSelectedPDF() {
+    const deleteButton = document.getElementById("deletePdfBtn");
+    const status = document.getElementById("documentStatus");
+    const { fileHash, filename } = deleteButton.dataset;
+
+    if (!fileHash) {
+        return;
+    }
+
+    if (!window.confirm(`Delete "${filename}"? This cannot be undone.`)) {
+        return;
+    }
+
+    deleteButton.disabled = true;
+    deleteButton.textContent = "Deleting...";
+    status.textContent = `Deleting ${filename}...`;
+
+    try {
+        const response = await authenticatedFetch(
+            `${API_URL}/documents/${encodeURIComponent(fileHash)}`,
+            { method: "DELETE" }
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || "Could not delete the PDF.");
+        }
+
+        await loadPdfDocuments();
+        status.textContent = `${data.filename} was deleted.`;
+    } catch (error) {
+        status.textContent = `Could not delete PDF: ${error.message}`;
+        console.error("PDF delete error:", error);
+        deleteButton.disabled = false;
+        deleteButton.textContent = "Delete";
+    }
+}
+
+document.getElementById("pdfDocumentSelect").addEventListener(
+    "change",
+    updatePdfDeleteButton
+);
+document.getElementById("deletePdfBtn").addEventListener(
+    "click",
+    deleteSelectedPDF
+);
+
 async function uploadPDF() {
     const fileInput = document.getElementById("pdfFile");
     const uploadButton = document.getElementById("uploadPdfBtn");
@@ -1207,9 +1358,11 @@ async function uploadPDF() {
             throw new Error(data.detail || "PDF upload failed.");
         }
 
-        uploadStatus.textContent =
-            `Success! ${data.filename} processed into ${data.chunks} text chunks.`;
+        uploadStatus.textContent = data.already_exists
+            ? `${data.filename} is already available in the PDF index.`
+            : `Success! ${data.filename} processed into ${data.chunks} text chunks.`;
 
+        await loadPdfDocuments(data.file_hash);
         fileInput.value = "";
 
     } catch (error) {
@@ -1267,7 +1420,9 @@ async function sendMessage() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                user_message: message
+                user_message: message,
+                document_hash:
+                    document.getElementById("pdfDocumentSelect").value || null
             })
         });
 
@@ -1279,7 +1434,11 @@ async function sendMessage() {
             );
         }
 
-        loadingMessage.textContent = data.ai_response;
+        const documentStatus = data.used_documents
+            ? "PDF context used"
+            : "No PDF context retrieved";
+        loadingMessage.textContent =
+            `${documentStatus}\n\n${data.ai_response}`;
 
     } catch (error) {
         loadingMessage.textContent = `Unable to get an AI response: ${error.message}`;
