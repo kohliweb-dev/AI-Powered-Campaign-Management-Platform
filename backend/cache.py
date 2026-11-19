@@ -6,7 +6,9 @@ from backend.config import settings
 # Connect to Redis
 redis_client = redis.Redis.from_url(
     settings.REDIS_URL,
-    decode_responses=True
+    decode_responses=True,
+    socket_connect_timeout=1,
+    socket_timeout=1
 )
 
 

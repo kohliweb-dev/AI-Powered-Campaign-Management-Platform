@@ -5,7 +5,10 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from backend.config import settings
 
 # Connect to PostgreSQL
-engine = create_engine(settings.POSTGRES_URL)
+engine = create_engine(
+    settings.POSTGRES_URL,
+    connect_args={"connect_timeout": 3}
+)
 
 # Create database sessions
 SessionLocal = sessionmaker(

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f7fb">
+    <title>Campaigns | CampaignAI</title>
+    <link rel="stylesheet" href="style.css?v=7">
+</head>
+<body data-page="campaigns">
+    <div id="appContainer" class="app-container" style="display:none">
+        <header id="siteHeader" class="site-header"></header>
+        <main class="main-content">
+            <section class="page-heading">
+                <div>
+                    <p class="eyebrow">YOUR WORK, ALL IN ONE PLACE</p>
+                    <h1>Campaigns</h1>
+                    <p class="page-description">Shape the details, keep your plans organized, and move good ideas forward.</p>
+                </div>
+                <button id="addCampaignBtn" class="button button-primary" type="button">＋ Create campaign</button>
+            </section>
+
+            <section id="campaignForm" class="panel-card form-panel hidden">
+                <div class="section-heading">
+                    <div><p class="eyebrow">START SOMETHING GOOD</p><h2>New campaign</h2></div>
+                    <button id="cancelCampaignBtn" class="icon-button" type="button" aria-label="Close form">×</button>
+                </div>
+                <div class="form-grid">
+                    <label class="form-field"><span>Campaign name</span><input id="campaignName" type="text" placeholder="e.g. Summer, made brighter"></label>
+                    <label class="form-field"><span>Target audience</span><input id="targetAudience" type="text" placeholder="Who are you speaking to?"></label>
+                    <label class="form-field field-wide"><span>Description</span><textarea id="campaignDescription" rows="3" placeholder="What is this campaign about?"></textarea></label>
+                    <label class="form-field"><span>Budget (₹)</span><input id="campaignBudget" type="number" min="0" step="any" placeholder="0"></label>
+                </div>
+                <div class="form-actions"><button id="saveCampaignBtn" class="button button-primary" type="button">Save campaign</button></div>
+            </section>
+
+            <form id="editCampaignForm" class="panel-card form-panel hidden">
+                <div class="section-heading">
+                    <div><p class="eyebrow">REFINE YOUR PLAN</p><h2>Edit campaign</h2></div>
+                    <button id="cancelEditCampaignBtn" class="icon-button" type="button" aria-label="Close form">×</button>
+                </div>
+                <div class="form-grid">
+                    <label class="form-field"><span>Campaign name</span><input id="editCampaignName" type="text" required></label>
+                    <label class="form-field"><span>Target audience</span><input id="editTargetAudience" type="text"></label>
+                    <label class="form-field field-wide"><span>Description</span><textarea id="editCampaignDescription" rows="3"></textarea></label>
+                    <label class="form-field"><span>Budget (₹)</span><input id="editCampaignBudget" type="number" min="0" step="any" required></label>
+                </div>
+                <p id="editCampaignStatus" class="form-status" role="status" aria-live="polite"></p>
+                <div class="form-actions">
+                    <button id="saveEditedCampaignBtn" class="button button-primary" type="submit">Save changes</button>
+                    <button id="cancelEditCampaignAction" class="button button-secondary" type="button">Cancel</button>
+                </div>
+            </form>
+
+            <section class="panel-card">
+                <div class="section-heading">
+                    <div><p class="eyebrow">CAMPAIGN LIBRARY</p><h2>Your campaigns</h2></div>
+                    <span class="subtle-label">Search, filter, and manage</span>
+                </div>
+                <div class="campaign-filters">
+                    <label class="search-field"><span aria-hidden="true">⌕</span><input id="campaignSearch" type="search" placeholder="Search by name, audience, or try AI search"></label>
+                    <select id="campaignStatusFilter" aria-label="Filter by campaign status">
+                        <option value="all">All statuses</option>
+                        <option value="Draft">Draft</option>
+                        <option value="Active">Active</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div id="campaignList" class="campaign-list">
+                    <p class="empty-message">Loading campaigns…</p>
+                </div>
+            </section>
+            <footer class="page-footer"><span>CampaignAI</span><span>Make every campaign count.</span></footer>
+        </main>
+    </div>
+    <script src="script.js?v=4"></script>
+</body>
+</html>

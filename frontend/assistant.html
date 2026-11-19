@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f7fb">
+    <title>AI Assistant | CampaignAI</title>
+    <link rel="stylesheet" href="style.css?v=7">
+</head>
+<body data-page="assistant">
+    <div id="appContainer" class="app-container" style="display:none">
+        <header id="siteHeader" class="site-header"></header>
+        <main class="main-content">
+            <section class="page-heading">
+                <div>
+                    <p class="eyebrow">THINK IT THROUGH</p>
+                    <h1>AI Assistant</h1>
+                    <p class="page-description">Ask a question, explore an idea, or bring your documents into the conversation.</p>
+                </div>
+                <span class="model-badge"><span></span> Llama 3.2 assistant</span>
+            </section>
+            <section class="assistant-layout">
+                <aside class="panel-card knowledge-panel">
+                    <div class="section-heading">
+                        <div><p class="eyebrow">YOUR KNOWLEDGE</p><h2>Reference documents</h2></div>
+                        <span class="knowledge-icon" aria-hidden="true">▤</span>
+                    </div>
+                    <p class="panel-description">Add a PDF to let the assistant use your own material when answering.</p>
+                    <label class="file-drop">
+                        <span class="file-drop-icon" aria-hidden="true">↑</span>
+                        <strong>Choose a PDF to upload</strong>
+                        <small>PDF files up to 10 MB</small>
+                        <input type="file" id="pdfFile" accept=".pdf,application/pdf">
+                    </label>
+                    <button id="uploadPdfBtn" class="button button-primary button-wide upload-document-btn" type="button">Upload document</button>
+                    <p id="uploadStatus" class="form-status" role="status" aria-live="polite"></p>
+                    <div class="document-picker">
+                        <label class="form-field"><span>Use a specific document</span>
+                            <select id="pdfDocumentSelect"><option value="">All uploaded PDFs</option></select>
+                        </label>
+                        <button id="deletePdfBtn" class="button button-quiet delete-pdf-btn" type="button" hidden>Delete selected</button>
+                    </div>
+                    <p id="documentStatus" class="form-status" role="status" aria-live="polite"></p>
+                    <div class="privacy-note"><span aria-hidden="true">◈</span><span>Your uploaded documents stay within your workspace.</span></div>
+                </aside>
+                <section class="panel-card chat-panel" aria-label="Conversation with AI assistant">
+                    <div class="chat-panel-heading">
+                        <div class="assistant-avatar" aria-hidden="true">✦</div>
+                        <div><strong>CampaignAI Assistant</strong><small>Ready to think alongside you</small></div>
+                        <span class="online-indicator">Online</span>
+                    </div>
+                    <div id="chatBox" class="chat-box" aria-live="polite">
+                        <div class="bot-message">Hello! I can help you explore campaign ideas, sharpen a message, or find insights in your uploaded PDFs. What are you working on?</div>
+                    </div>
+                    <div class="chat-composer">
+                        <input id="userMessage" type="text" placeholder="Ask a question or share an idea…" aria-label="Your message">
+                        <button id="sendBtn" class="button button-primary" type="button">Send <span aria-hidden="true">→</span></button>
+                    </div>
+                    <p class="assistant-disclaimer">AI can make mistakes. Review suggestions before using them.</p>
+                </section>
+            </section>
+            <footer class="page-footer"><span>CampaignAI</span><span>A thoughtful partner for your next idea.</span></footer>
+        </main>
+    </div>
+    <script src="script.js?v=4"></script>
+</body>
+</html>

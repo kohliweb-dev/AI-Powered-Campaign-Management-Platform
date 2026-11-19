@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f7fb">
+    <title>Analytics | CampaignAI</title>
+    <link rel="stylesheet" href="style.css?v=7">
+</head>
+<body data-page="analytics">
+    <div id="appContainer" class="app-container" style="display:none">
+        <header id="siteHeader" class="site-header"></header>
+        <main class="main-content">
+            <section class="page-heading">
+                <div>
+                    <p class="eyebrow">A CLEARER VIEW OF YOUR WORK</p>
+                    <h1>Analytics</h1>
+                    <p class="page-description">A high-level read on the campaigns in your workspace.</p>
+                </div>
+                <button id="refreshAnalyticsBtn" class="button button-secondary" type="button">↻ Refresh data</button>
+            </section>
+            <section class="analytics-stats" aria-label="Campaign analytics summary">
+                <article class="stat-card"><p>Total campaigns</p><strong id="analyticsTotal">0</strong><span class="stat-footnote">In your workspace</span></article>
+                <article class="stat-card"><p>Active campaigns</p><strong id="analyticsActive">0</strong><span class="stat-footnote">Currently in market</span></article>
+                <article class="stat-card"><p>Draft campaigns</p><strong id="analyticsDraft">0</strong><span class="stat-footnote">Ready to refine</span></article>
+                <article class="stat-card"><p>Average budget</p><strong id="averageBudget">₹0</strong><span class="stat-footnote">Per campaign</span></article>
+            </section>
+            <section class="analytics-layout">
+                <article class="panel-card chart-card">
+                    <div class="section-heading"><div><p class="eyebrow">PLANNED INVESTMENT</p><h2>Budget distribution</h2></div><span class="chart-mark">₹</span></div>
+                    <div id="budgetChart" class="budget-chart"><p class="empty-message">Analytics will appear here.</p></div>
+                </article>
+                <article class="panel-card chart-card">
+                    <div class="section-heading"><div><p class="eyebrow">WHERE THINGS STAND</p><h2>Campaign status</h2></div><span class="chart-mark">◷</span></div>
+                    <div id="statusChart" class="status-chart"></div>
+                </article>
+            </section>
+            <div class="notice-card"><span aria-hidden="true">✦</span><p><strong>Good decisions start with good context.</strong> These summaries are based on saved campaigns; use them as a starting point for your next conversation.</p></div>
+            <footer class="page-footer"><span>CampaignAI</span><span>Small signals. Smarter moves.</span></footer>
+        </main>
+    </div>
+    <script src="script.js?v=4"></script>
+</body>
+</html>

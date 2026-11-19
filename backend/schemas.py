@@ -1,5 +1,5 @@
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 
 
@@ -9,14 +9,14 @@ class CampaignCreate(BaseModel):
     name: str
     description: Optional[str] = None
     target_audience: Optional[str] = None
-    budget: float = 0
+    budget: float = Field(default=0, ge=0)
 
 
 class CampaignUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     target_audience: Optional[str] = None
-    budget: Optional[float] = None
+    budget: Optional[float] = Field(default=None, ge=0)
 
 
 class CampaignResponse(BaseModel):
@@ -34,7 +34,7 @@ class CampaignGenerateRequest(BaseModel):
     product: str
     objective: str
     target_audience: str
-    budget: float
+    budget: float = Field(ge=0)
     platform: str
 
 

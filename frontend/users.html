@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f7fb">
+    <title>Team | CampaignAI</title>
+    <link rel="stylesheet" href="style.css?v=7">
+</head>
+<body data-page="users">
+    <div id="appContainer" class="app-container" style="display:none">
+        <header id="siteHeader" class="site-header"></header>
+        <main class="main-content">
+            <section class="page-heading">
+                <div>
+                    <p class="eyebrow">WORKSPACE ACCESS</p>
+                    <h1>Team</h1>
+                    <p class="page-description">Manage who can access your CampaignAI workspace.</p>
+                </div>
+                <button id="refreshUsersBtn" class="button button-secondary" type="button">↻ Refresh team</button>
+            </section>
+            <section class="panel-card team-panel">
+                <div class="section-heading">
+                    <div><p class="eyebrow">PEOPLE & PERMISSIONS</p><h2>Workspace members</h2></div>
+                    <span class="subtle-label">Admin controls</span>
+                </div>
+                <p id="userManagementStatus" class="form-status" role="status" aria-live="polite"></p>
+                <div class="table-responsive">
+                    <table class="user-management-table">
+                        <thead><tr><th>ID</th><th>Member</th><th>Email</th><th>Role</th><th>Change access</th><th>Actions</th></tr></thead>
+                        <tbody id="usersTableBody"><tr><td colspan="6">Loading members…</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+            <div class="notice-card"><span aria-hidden="true">◈</span><p><strong>Keep access intentional.</strong> Only grant administrator access to people who need to manage workspace users.</p></div>
+            <footer class="page-footer"><span>CampaignAI</span><span>Better work, together.</span></footer>
+        </main>
+    </div>
+    <script src="script.js?v=4"></script>
+</body>
+</html>

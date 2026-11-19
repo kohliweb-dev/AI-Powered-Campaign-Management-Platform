@@ -1,4 +1,5 @@
 import hashlib
+from pathlib import Path
 
 import backend.rag as rag
 
@@ -35,12 +36,15 @@ def test_add_pdf_stores_chunks_under_owner(monkeypatch):
                 "metadatas": metadatas
             }
 
-    class Page:
-        def extract_text(self):
-            return "Private document contents."
+    class Document:
+        page_content = "Private document contents."
 
-    class Reader:
-        pages = [Page()]
+    class UploadLoader:
+        def __init__(self, path):
+            assert Path(path).is_file()
+
+        def load(self):
+            return [Document()]
 
     class UploadEmbeddings:
         def embed_documents(self, documents):
@@ -48,7 +52,7 @@ def test_add_pdf_stores_chunks_under_owner(monkeypatch):
 
     collection = UploadCollection()
     monkeypatch.setattr(rag, "collection", collection)
-    monkeypatch.setattr(rag, "PdfReader", lambda _: Reader())
+    monkeypatch.setattr(rag, "PyPDFLoader", UploadLoader)
     monkeypatch.setattr(rag, "embeddings", UploadEmbeddings())
 
     file_bytes = b"private pdf"

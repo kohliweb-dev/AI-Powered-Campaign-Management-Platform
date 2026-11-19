@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f7fb">
+    <title>AI Studio | CampaignAI</title>
+    <link rel="stylesheet" href="style.css?v=7">
+</head>
+<body data-page="generator">
+    <div id="appContainer" class="app-container" style="display:none">
+        <header id="siteHeader" class="site-header"></header>
+        <main class="main-content">
+            <section class="page-heading">
+                <div>
+                    <p class="eyebrow">A THOUGHTFUL FIRST DRAFT</p>
+                    <h1>AI Studio</h1>
+                    <p class="page-description">Give your idea a direction. We’ll help you turn it into a campaign concept.</p>
+                </div>
+                <span class="model-badge"><span></span> Powered by Llama 3.2</span>
+            </section>
+            <section class="studio-layout">
+                <div class="panel-card studio-form-card">
+                    <div class="section-heading">
+                        <div><p class="eyebrow">THE BRIEF</p><h2>Set your starting point</h2></div>
+                        <span class="step-number">01</span>
+                    </div>
+                    <div class="form-stack">
+                        <label class="form-field"><span>Product or service</span><input id="generatorProduct" type="text" placeholder="e.g. A new collection of running shoes"></label>
+                        <label class="form-field"><span>Campaign objective</span><input id="generatorObjective" type="text" placeholder="e.g. Introduce the collection to new customers"></label>
+                        <label class="form-field"><span>Target audience</span><input id="generatorAudience" type="text" placeholder="e.g. Weekend runners, ages 25–40"></label>
+                        <div class="form-row">
+                            <label class="form-field"><span>Budget (₹)</span><input id="generatorBudget" type="number" min="0" step="any" placeholder="20000"></label>
+                            <label class="form-field"><span>Primary channel</span>
+                                <select id="generatorPlatform">
+                                    <option value="">Choose a channel</option>
+                                    <option value="Instagram">Instagram</option>
+                                    <option value="Facebook">Facebook</option>
+                                    <option value="Google Ads">Google Ads</option>
+                                    <option value="YouTube">YouTube</option>
+                                    <option value="LinkedIn">LinkedIn</option>
+                                    <option value="Email Marketing">Email marketing</option>
+                                </select>
+                            </label>
+                        </div>
+                        <button id="generateCampaignBtn" class="button button-primary button-wide" type="button">✦ Generate campaign idea</button>
+                        <p id="generatorStatus" class="form-status" role="status" aria-live="polite"></p>
+                    </div>
+                    <div class="studio-tip"><span aria-hidden="true">✦</span><p><strong>A better brief, a better start.</strong><br>Specific goals and audiences help the AI create more useful ideas.</p></div>
+                </div>
+                <div id="generatedCampaignResult" class="panel-card generated-campaign-result hidden">
+                    <div class="section-heading">
+                        <div><p class="eyebrow">YOUR CONCEPT</p><h2 id="generatedCampaignName">Campaign concept</h2></div>
+                        <span class="result-badge">FIRST DRAFT</span>
+                    </div>
+                    <div class="concept-callout"><span class="eyebrow">STRATEGY</span><p id="generatedStrategy"></p></div>
+                    <div class="concept-grid">
+                        <article class="concept-item"><span>AD HEADLINE</span><p id="generatedHeadline"></p></article>
+                        <article class="concept-item"><span>AD DESCRIPTION</span><p id="generatedDescription"></p></article>
+                        <article class="concept-item"><span>TARGET AUDIENCE</span><p id="generatedTargetAudience"></p></article>
+                        <article class="concept-item"><span>CALL TO ACTION</span><p id="generatedCTA"></p></article>
+                    </div>
+                    <div class="result-footer">
+                        <button id="saveGeneratedCampaignBtn" class="button button-primary" type="button">Save to campaigns</button>
+                        <p id="saveCampaignStatus" class="form-status" role="status" aria-live="polite"></p>
+                    </div>
+                </div>
+                <div id="generatorPlaceholder" class="panel-card generator-placeholder">
+                    <div class="placeholder-icon" aria-hidden="true">✳</div>
+                    <p class="eyebrow">ROOM FOR A BIG IDEA</p>
+                    <h2>Your next campaign starts here.</h2>
+                    <p>Fill in the brief and generate a considered first draft. You can refine it before saving.</p>
+                    <div class="placeholder-lines" aria-hidden="true"><i></i><i></i><i></i></div>
+                </div>
+            </section>
+            <footer class="page-footer"><span>CampaignAI</span><span>Creativity, with a little momentum.</span></footer>
+        </main>
+    </div>
+    <script src="script.js?v=4"></script>
+</body>
+</html>

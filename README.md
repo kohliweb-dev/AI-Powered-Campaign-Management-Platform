@@ -210,13 +210,38 @@ The project includes Kubernetes deployments and services for running the applica
 
 Make sure Kubernetes is enabled in Docker Desktop before applying the manifests.
 
+Build the images locally before applying these manifests. The deployments use
+`imagePullPolicy: Never`, so after building, load the tagged images into the
+Kubernetes node's containerd image store as well. Docker Desktop's host Docker
+image store and Kubernetes node image store are separate:
+
+```bash
+docker build -t enterprise-capstone-backend:20261119-fix1 -f docker/Dockerfile .
+docker build -t enterprise-capstone-frontend:20261119 -f docker/Dockerfile.frontend .
+```
+
+For the backend database, create a Kubernetes Secret named
+`capstone-postgres-credentials` in the `enterprise-capstone` namespace with
+`POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` matching the PostgreSQL
+credentials and database in `capstone-secrets`'s `POSTGRES_URL`. Do not commit
+the Secret or its values. Create `capstone-mongodb-credentials` in the same
+namespace with `MONGO_INITDB_ROOT_USERNAME` and `MONGO_INITDB_ROOT_PASSWORD`
+matching the credentials in `capstone-secrets`'s `MONGO_URL`. The PostgreSQL
+and MongoDB Deployments store data in persistent volumes.
+
 Example commands:
 
 ```bash
 kubectl apply -f kubernetes/namespace.yaml
-kubectl apply -f monitoring/prometheus-configmap.yaml
+kubectl apply -f kubernetes/postgres.yaml
+kubectl apply -f kubernetes/mongodb.yaml
 kubectl apply -f kubernetes/
-kubectl apply -f monitoring/
+kubectl apply -f monitoring/grafana-pvc.yaml
+kubectl apply -f monitoring/prometheus-configmap.yaml
+kubectl apply -f monitoring/grafana-deployment.yaml
+kubectl apply -f monitoring/grafana-service.yaml
+kubectl apply -f monitoring/prometheus-deployment.yaml
+kubectl apply -f monitoring/prometheus-service.yaml
 ```
 
 Check the deployment status:
@@ -225,6 +250,14 @@ Check the deployment status:
 kubectl get pods -n enterprise-capstone
 kubectl get services -n enterprise-capstone
 ```
+
+For local access to the backend API in Docker Desktop Kubernetes, run:
+
+```bash
+kubectl port-forward service/capstone-backend-service 8002:8000 -n enterprise-capstone
+```
+
+Then open http://localhost:8002/docs. Docker Compose uses host port `8001`.
 
 Note: Apply the manifests according to their dependencies and ensure the required Kubernetes secrets and configuration are available.
 

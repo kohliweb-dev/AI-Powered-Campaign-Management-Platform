@@ -13,6 +13,7 @@ let searchDebounceTimer = null;
 let generatedCampaignData = null;
 let editingCampaignId = null;
 let currentUser = null;
+const currentPage = document.body.dataset.page || "dashboard";
 
 // ==========================================
 // AUTHENTICATED API REQUEST
@@ -52,37 +53,122 @@ async function authenticatedFetch(url, options = {}) {
 let authMode = "login";
 
 function showAuthScreen() {
-    document.getElementById("authScreen").style.display = "flex";
-    document.getElementById("appContainer").style.display = "none";
-    document.getElementById("assistantToggleBtn").style.display = "none";
+    const authScreen = document.getElementById("authScreen");
+    const appContainer = document.getElementById("appContainer");
+
+    if (!authScreen) {
+        location.replace("index.html");
+        return;
+    }
+
+    authScreen.style.display = "grid";
+    appContainer.style.display = "none";
 }
 
 function showDashboard(user) {
     currentUser = user;
 
-    document.getElementById("authScreen").style.display = "none";
+    const authScreen = document.getElementById("authScreen");
+    if (authScreen) authScreen.style.display = "none";
     document.getElementById("appContainer").style.display = "";
-    document.getElementById("assistantToggleBtn").style.display = "";
-
-    document.getElementById("profileName").textContent = user.username;
-    document.getElementById("profileRole").textContent = user.role;
-    document.getElementById("profileAvatar").textContent =
-        user.username.charAt(0).toUpperCase();
+    renderHeader(user);
 
     const adminUsersNav = document.getElementById("adminUsersNav");
-    const userManagement = document.getElementById("userManagement");
-
     const isAdmin = user.role === "admin";
 
-    adminUsersNav.classList.toggle("hidden", !isAdmin);
-    userManagement.classList.add("hidden");
+    if (adminUsersNav) {
+        adminUsersNav.classList.toggle("hidden", !isAdmin);
+    }
 
-    if (isAdmin) {
+    if (currentPage === "users" && !isAdmin) {
+        location.replace("index.html");
+        return;
+    }
+
+    if (currentPage === "users") {
         loadUsers();
     }
 
-    loadCampaigns();
-    loadPdfDocuments();
+    const workspaceUsername = document.getElementById("workspaceUsername");
+    const workspaceRole = document.getElementById("workspaceRole");
+    if (workspaceUsername) workspaceUsername.textContent = user.username;
+    if (workspaceRole) {
+        workspaceRole.textContent =
+            user.role === "admin" ? "Workspace administrator" : "Workspace member";
+    }
+
+    if (["dashboard", "campaigns", "analytics"].includes(currentPage)) {
+        loadCampaigns();
+    }
+
+    if (currentPage === "assistant") {
+        loadPdfDocuments();
+    }
+}
+
+function bindIfExists(id, eventName, handler) {
+    const element = document.getElementById(id);
+    if (element) element.addEventListener(eventName, handler);
+}
+
+function renderHeader(user) {
+    const header = document.getElementById("siteHeader");
+    if (!header) return;
+
+    const initial = escapeHTML(user.username.charAt(0).toUpperCase());
+    const username = escapeHTML(user.username);
+    const isAdmin = user.role === "admin";
+
+    header.innerHTML = `
+        <div class="header-inner">
+            <a class="brand" href="index.html" aria-label="CampaignAI dashboard">
+                <span class="brand-name">Campaign<span>AI</span></span>
+            </a>
+            <button class="mobile-nav-toggle" id="mobileNavToggle"
+                type="button" aria-expanded="false" aria-controls="primaryNav"
+                aria-label="Open navigation">
+                <span></span><span></span>
+            </button>
+            <nav class="primary-nav" id="primaryNav" aria-label="Main navigation">
+                <a class="nav-link" data-page-link="dashboard" href="index.html">Overview</a>
+                <a class="nav-link" data-page-link="campaigns" href="campaigns.html">Campaigns</a>
+                <a class="nav-link" data-page-link="generator" href="generator.html">AI Studio</a>
+                <a class="nav-link" data-page-link="assistant" href="assistant.html">Assistant</a>
+                <a class="nav-link" data-page-link="analytics" href="analytics.html">Analytics</a>
+                <a class="nav-link hidden" id="adminUsersNav"
+                    data-page-link="users" href="users.html">Team</a>
+                <a class="nav-link" data-page-link="settings" href="settings.html">Workspace</a>
+            </nav>
+            <div class="header-account">
+                <span class="header-avatar" aria-hidden="true">${initial}</span>
+                <span class="header-user">
+                    <strong>${username}</strong>
+                    <small>${isAdmin ? "Administrator" : "Workspace member"}</small>
+                </span>
+                <button class="logout-button" id="logoutBtn" type="button">Sign out</button>
+            </div>
+        </div>
+    `;
+
+    const activeLink = header.querySelector(`[data-page-link="${currentPage}"]`);
+    if (activeLink) activeLink.classList.add("active");
+
+    const usersLink = document.getElementById("adminUsersNav");
+    if (usersLink) usersLink.classList.toggle("hidden", !isAdmin);
+
+    const toggle = document.getElementById("mobileNavToggle");
+    const nav = document.getElementById("primaryNav");
+    toggle.addEventListener("click", () => {
+        const isOpen = toggle.getAttribute("aria-expanded") === "true";
+        toggle.setAttribute("aria-expanded", String(!isOpen));
+        toggle.setAttribute("aria-label", isOpen ? "Open navigation" : "Close navigation");
+        nav.classList.toggle("is-open", !isOpen);
+    });
+
+    bindIfExists("logoutBtn", "click", () => {
+        localStorage.removeItem("access_token");
+        location.assign("index.html");
+    });
 }
 
 function switchAuthMode() {
@@ -91,8 +177,10 @@ function switchAuthMode() {
     document.getElementById("authTitle").textContent =
         authMode === "login" ? "Login to CampaignAI" : "Create Account";
 
-    document.getElementById("usernameGroup").style.display =
-        authMode === "register" ? "block" : "none";
+    document.getElementById("usernameGroup").classList.toggle(
+        "hidden",
+        authMode !== "register"
+    );
 
     document.getElementById("authUsername").required =
         authMode === "register";
@@ -111,12 +199,12 @@ function switchAuthMode() {
     document.getElementById("authStatus").textContent = "";
 }
 
-document.getElementById("authSwitchBtn").addEventListener(
+bindIfExists("authSwitchBtn",
     "click",
     switchAuthMode
 );
 
-document.getElementById("authForm").addEventListener(
+bindIfExists("authForm",
     "submit",
     async function(event) {
         event.preventDefault();
@@ -186,19 +274,16 @@ document.getElementById("authForm").addEventListener(
     }
 );
 
-// Logout
-document.getElementById("logoutBtn").addEventListener("click", () => {
-    localStorage.removeItem("access_token");
-    currentUser = null;
-    location.reload();
-});
-
 // Restore existing login session
 async function checkLogin() {
     const token = localStorage.getItem("access_token");
 
     if (!token) {
-        showAuthScreen();
+        if (currentPage === "dashboard") {
+            showAuthScreen();
+        } else {
+            location.replace("index.html");
+        }
         return;
     }
 
@@ -218,7 +303,11 @@ async function checkLogin() {
 
     } catch (error) {
         localStorage.removeItem("access_token");
-        showAuthScreen();
+        if (currentPage === "dashboard") {
+            showAuthScreen();
+        } else {
+            location.replace("index.html");
+        }
     }
 }
 
@@ -275,6 +364,7 @@ async function loadUsers() {
 
         tableBody.innerHTML = users.map(user => {
             const isCurrentUser = user.id === currentUser.id;
+            const isDeleting = user.role === "deleting";
 
             return `
                 <tr>
@@ -290,8 +380,13 @@ async function loadUsers() {
                         <select
                             class="user-role-select"
                             data-user-id="${user.id}"
-                            ${isCurrentUser ? "disabled" : ""}
+                            ${isCurrentUser || isDeleting ? "disabled" : ""}
                         >
+                            ${
+                                isDeleting
+                                    ? '<option value="deleting" selected>Deleting</option>'
+                                    : ""
+                            }
                             <option value="user"
                                 ${user.role === "user" ? "selected" : ""}>
                                 User
@@ -306,6 +401,18 @@ async function loadUsers() {
                         ${
                             isCurrentUser
                                 ? "<span>Current account</span>"
+                                : isDeleting
+                                ? `
+                                    <span>Deletion pending</span>
+                                    <button
+                                        type="button"
+                                        class="delete-user-btn"
+                                        data-user-id="${user.id}"
+                                        data-username="${escapeHTML(user.username)}"
+                                        data-pending="true">
+                                        Retry cleanup
+                                    </button>
+                                `
                                 : `
                                     <button
                                         type="button"
@@ -317,7 +424,8 @@ async function loadUsers() {
                                         type="button"
                                         class="delete-user-btn"
                                         data-user-id="${user.id}"
-                                        data-username="${escapeHTML(user.username)}">
+                                        data-username="${escapeHTML(user.username)}"
+                                        data-pending="false">
                                         Delete
                                     </button>
                                 `
@@ -344,7 +452,7 @@ async function loadUsers() {
     }
 }
 
-document.getElementById("refreshUsersBtn").addEventListener(
+bindIfExists("refreshUsersBtn",
     "click",
     loadUsers
 );
@@ -409,15 +517,18 @@ async function updateUserRole(userId, button) {
 async function deleteUser(userId, button) {
     const status = document.getElementById("userManagementStatus");
     const username = button.dataset.username;
+    const isRetry = button.dataset.pending === "true";
 
     if (!confirm(
-        `Delete ${username} and permanently remove their campaigns, PDFs, and chat history?`
+        isRetry
+            ? `Retry data cleanup for ${username}?`
+            : `Delete ${username} and permanently remove their campaigns, PDFs, and chat history?`
     )) {
         return;
     }
 
     button.disabled = true;
-    button.textContent = "Deleting...";
+    button.textContent = isRetry ? "Retrying..." : "Deleting...";
 
     try {
         const response = await authenticatedFetch(
@@ -437,11 +548,11 @@ async function deleteUser(userId, button) {
         status.textContent = error.message;
         console.error("User deletion error:", error);
         button.disabled = false;
-        button.textContent = "Delete";
+        button.textContent = isRetry ? "Retry cleanup" : "Delete";
     }
 }
 
-document.getElementById("usersTableBody").addEventListener(
+bindIfExists("usersTableBody",
     "click",
     async function(event) {
         const button = event.target.closest(
@@ -479,11 +590,13 @@ async function loadCampaigns() {
         semanticSearchResults = null;
 
         updateDashboard();
-        displayCampaigns();
+        if (campaignList) displayCampaigns();
 
     } catch (error) {
-        campaignList.innerHTML =
-            '<p class="empty-message">Unable to load campaigns. Check FastAPI.</p>';
+        if (campaignList) {
+            campaignList.innerHTML =
+                '<p class="empty-message">Unable to load campaigns. Check FastAPI.</p>';
+        }
 
         console.error("Campaign loading error:", error);
     }
@@ -501,12 +614,15 @@ function updateDashboard() {
         0
     );
 
-    document.getElementById("totalCampaigns").textContent = total;
-    document.getElementById("activeCampaigns").textContent = active;
-    document.getElementById("totalBudget").textContent =
-        formatBudget(totalBudget);
+    const totalElement = document.getElementById("totalCampaigns");
+    const activeElement = document.getElementById("activeCampaigns");
+    const budgetElement = document.getElementById("totalBudget");
 
-    updateAnalytics();
+    if (totalElement) totalElement.textContent = total;
+    if (activeElement) activeElement.textContent = active;
+    if (budgetElement) budgetElement.textContent = formatBudget(totalBudget);
+
+    if (document.getElementById("analyticsTotal")) updateAnalytics();
 }
 
 // Display campaigns, including semantic search results.
@@ -516,15 +632,15 @@ function displayCampaigns() {
     const searchInput = document.getElementById("campaignSearch");
     const statusFilter = document.getElementById("campaignStatusFilter");
 
-    const searchText = searchInput.value.toLowerCase().trim();
-    const selectedStatus = statusFilter.value;
+    const searchText = searchInput?.value.toLowerCase().trim() || "";
+    const selectedStatus = statusFilter?.value || "all";
 
     const sourceCampaigns =
         semanticSearchResults !== null
             ? semanticSearchResults
             : campaignsData;
 
-    const filteredCampaigns = sourceCampaigns.filter(campaign => {
+    let filteredCampaigns = sourceCampaigns.filter(campaign => {
         // Normal search matches campaign name and details.
         // Semantic search results are already ranked by the backend.
         const matchesSearch =
@@ -546,12 +662,18 @@ function displayCampaigns() {
         return matchesSearch && matchesStatus;
     });
 
+    if (currentPage === "dashboard") {
+        filteredCampaigns = filteredCampaigns.slice(0, 4);
+    }
+
     if (filteredCampaigns.length === 0) {
         campaignList.innerHTML = `
             <p class="empty-message">No matching campaigns found.</p>
         `;
         return;
     }
+
+    const actions = currentPage === "campaigns";
 
     campaignList.innerHTML = filteredCampaigns.map(campaign => `
         <div class="campaign-item">
@@ -563,7 +685,7 @@ function displayCampaigns() {
                 <p>Budget: ${formatBudget(campaign.budget)}</p>
             </div>
 
-            <div class="campaign-actions">
+            ${actions ? `<div class="campaign-actions">
                 <span class="campaign-status">
                     ${escapeHTML(campaign.status)}
                 </span>
@@ -579,7 +701,7 @@ function displayCampaigns() {
                     data-id="${campaign.id}">
                     Delete
                 </button>
-            </div>
+            </div>` : `<span class="campaign-status">${escapeHTML(campaign.status)}</span>`}
         </div>
     `).join("");
 }
@@ -660,7 +782,7 @@ async function performCampaignSearch() {
     }
 }
 
-document.getElementById("campaignSearch").addEventListener(
+bindIfExists("campaignSearch",
     "input",
     () => {
         clearTimeout(searchDebounceTimer);
@@ -671,13 +793,13 @@ document.getElementById("campaignSearch").addEventListener(
     }
 );
 
-document.getElementById("campaignStatusFilter").addEventListener(
+bindIfExists("campaignStatusFilter",
     "change",
     displayCampaigns
 );
 
 // Handle Edit and Delete campaign buttons.
-document.getElementById("campaignList").addEventListener(
+bindIfExists("campaignList",
     "click",
     async function(event) {
         const button = event.target.closest("button");
@@ -752,7 +874,7 @@ document.getElementById("campaignList").addEventListener(
 );
 
 // Save edited campaign.
-document.getElementById("editCampaignForm").addEventListener(
+bindIfExists("editCampaignForm",
     "submit",
     async event => {
         event.preventDefault();
@@ -830,23 +952,25 @@ document.getElementById("editCampaignForm").addEventListener(
     }
 );
 
-document.getElementById("cancelEditCampaignBtn").addEventListener(
-    "click",
-    () => {
+const cancelEditCampaign = () => {
         editingCampaignId = null;
 
         document.getElementById("editCampaignForm")
             .classList.add("hidden");
 
         document.getElementById("editCampaignStatus").textContent = "";
-    }
-);
+    };
+
+bindIfExists("cancelEditCampaignBtn", "click", cancelEditCampaign);
+bindIfExists("cancelEditCampaignAction", "click", cancelEditCampaign);
 
 // ==========================================
 // ANALYTICS
 // ==========================================
 
 function updateAnalytics() {
+    if (!document.getElementById("analyticsTotal")) return;
+
     const total = campaignsData.length;
 
     const active = campaignsData.filter(
@@ -936,7 +1060,7 @@ function displayStatusChart() {
 // MANUAL CAMPAIGN CREATION
 // ==========================================
 
-document.getElementById("addCampaignBtn").addEventListener(
+bindIfExists("addCampaignBtn",
     "click",
     () => {
         document.getElementById("campaignForm")
@@ -944,7 +1068,7 @@ document.getElementById("addCampaignBtn").addEventListener(
     }
 );
 
-document.getElementById("cancelCampaignBtn").addEventListener(
+bindIfExists("cancelCampaignBtn",
     "click",
     () => {
         document.getElementById("campaignForm")
@@ -952,7 +1076,7 @@ document.getElementById("cancelCampaignBtn").addEventListener(
     }
 );
 
-document.getElementById("saveCampaignBtn").addEventListener(
+bindIfExists("saveCampaignBtn",
     "click",
     async () => {
         const name =
@@ -1055,6 +1179,8 @@ async function generateCampaign() {
 
     const resultSection =
         document.getElementById("generatedCampaignResult");
+    const placeholder =
+        document.getElementById("generatorPlaceholder");
 
     if (!product || !objective || !targetAudience ||
         !budgetInput || !platform) {
@@ -1131,6 +1257,7 @@ async function generateCampaign() {
             data.call_to_action;
 
         resultSection.classList.remove("hidden");
+        if (placeholder) placeholder.classList.add("hidden");
         status.textContent = "Campaign generated successfully!";
 
     } catch (error) {
@@ -1143,7 +1270,7 @@ async function generateCampaign() {
     }
 }
 
-document.getElementById("generateCampaignBtn").addEventListener(
+bindIfExists("generateCampaignBtn",
     "click",
     generateCampaign
 );
@@ -1216,7 +1343,7 @@ Call to Action: ${generatedCampaignData.call_to_action}
     }
 }
 
-document.getElementById("saveGeneratedCampaignBtn").addEventListener(
+bindIfExists("saveGeneratedCampaignBtn",
     "click",
     saveGeneratedCampaign
 );
@@ -1312,11 +1439,11 @@ async function deleteSelectedPDF() {
     }
 }
 
-document.getElementById("pdfDocumentSelect").addEventListener(
+bindIfExists("pdfDocumentSelect",
     "change",
     updatePdfDeleteButton
 );
-document.getElementById("deletePdfBtn").addEventListener(
+bindIfExists("deletePdfBtn",
     "click",
     deleteSelectedPDF
 );
@@ -1375,7 +1502,7 @@ async function uploadPDF() {
     }
 }
 
-document.getElementById("uploadPdfBtn").addEventListener(
+bindIfExists("uploadPdfBtn",
     "click",
     uploadPDF
 );
@@ -1452,12 +1579,12 @@ async function sendMessage() {
     }
 }
 
-document.getElementById("sendBtn").addEventListener(
+bindIfExists("sendBtn",
     "click",
     sendMessage
 );
 
-document.getElementById("userMessage").addEventListener(
+bindIfExists("userMessage",
     "keydown",
     event => {
         if (event.key === "Enter") {
@@ -1470,197 +1597,12 @@ document.getElementById("userMessage").addEventListener(
 // ANALYTICS REFRESH
 // ==========================================
 
-document.getElementById("refreshAnalyticsBtn").addEventListener(
+bindIfExists("refreshAnalyticsBtn",
     "click",
     async () => {
         await loadCampaigns();
     }
 );
-
-// ==========================================
-// AI ASSISTANT RESIZE AND NAVIGATION
-// ==========================================
-
-const navLinks = document.querySelectorAll(".nav-link");
-const assistantPanel = document.getElementById("assistant");
-
-const assistantToggleButton =
-    document.getElementById("assistantToggleBtn");
-
-const assistantResizeHandle =
-    document.getElementById("assistantResizeHandle");
-
-function setAssistantWidth(width) {
-    const isMobile =
-        window.matchMedia("(max-width: 560px)").matches;
-
-    const edgeSpace = isMobile ? 20 : 40;
-
-    const availableWidth = Math.max(
-        0,
-        document.documentElement.clientWidth - edgeSpace
-    );
-
-    const maximumWidth = Math.min(1100, availableWidth);
-
-    const minimumWidth = Math.min(
-        isMobile ? 300 : 360,
-        maximumWidth
-    );
-
-    const nextWidth = Math.round(
-        Math.min(maximumWidth, Math.max(minimumWidth, width))
-    );
-
-    assistantPanel.style.width = `${nextWidth}px`;
-
-    assistantResizeHandle.setAttribute(
-        "aria-valuemax",
-        String(maximumWidth)
-    );
-
-    assistantResizeHandle.setAttribute(
-        "aria-valuemin",
-        String(minimumWidth)
-    );
-
-    assistantResizeHandle.setAttribute(
-        "aria-valuenow",
-        String(nextWidth)
-    );
-}
-
-assistantResizeHandle.addEventListener("pointerdown", event => {
-    if (event.button !== 0) return;
-
-    event.preventDefault();
-
-    assistantPanel.classList.add("is-resizing");
-    document.body.classList.add("assistant-resizing");
-
-    assistantResizeHandle.setPointerCapture(event.pointerId);
-});
-
-assistantResizeHandle.addEventListener("pointermove", event => {
-    if (!assistantResizeHandle.hasPointerCapture(event.pointerId)) {
-        return;
-    }
-
-    const panelRight =
-        document.documentElement.clientWidth -
-        Number.parseFloat(getComputedStyle(assistantPanel).right);
-
-    setAssistantWidth(panelRight - event.clientX);
-});
-
-function stopAssistantResize(event) {
-    if (!assistantResizeHandle.hasPointerCapture(event.pointerId)) {
-        return;
-    }
-
-    assistantResizeHandle.releasePointerCapture(event.pointerId);
-
-    assistantPanel.classList.remove("is-resizing");
-    document.body.classList.remove("assistant-resizing");
-}
-
-assistantResizeHandle.addEventListener("pointerup", stopAssistantResize);
-assistantResizeHandle.addEventListener("pointercancel", stopAssistantResize);
-
-assistantResizeHandle.addEventListener("keydown", event => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
-        return;
-    }
-
-    event.preventDefault();
-
-    const currentWidth =
-        assistantPanel.getBoundingClientRect().width;
-
-    const direction = event.key === "ArrowLeft" ? 1 : -1;
-
-    setAssistantWidth(currentWidth + direction * 32);
-});
-
-window.addEventListener("resize", () => {
-    if (assistantPanel.style.width) {
-        setAssistantWidth(
-            assistantPanel.getBoundingClientRect().width
-        );
-    }
-});
-
-function openAssistant() {
-    assistantPanel.classList.remove("hidden");
-
-    assistantToggleButton.setAttribute("aria-expanded", "true");
-    assistantToggleButton.setAttribute("aria-label", "Close AI assistant");
-    assistantToggleButton.title = "Close assistant";
-}
-
-function closeAssistant() {
-    assistantPanel.classList.add("hidden");
-
-    assistantToggleButton.setAttribute("aria-expanded", "false");
-    assistantToggleButton.setAttribute("aria-label", "Open AI assistant");
-    assistantToggleButton.title = "Chat with AI assistant";
-}
-
-assistantToggleButton.addEventListener("click", () => {
-    if (assistantPanel.classList.contains("hidden")) {
-        openAssistant();
-        document.getElementById("userMessage").focus();
-    } else {
-        closeAssistant();
-    }
-});
-
-document.getElementById("closeAssistantBtn").addEventListener(
-    "click",
-    closeAssistant
-);
-
-document.addEventListener("keydown", event => {
-    if (
-        event.key === "Escape" &&
-        !assistantPanel.classList.contains("hidden")
-    ) {
-        closeAssistant();
-        assistantToggleButton.focus();
-    }
-});
-
-navLinks.forEach(link => {
-    link.addEventListener("click", event => {
-        const target = link.getAttribute("href");
-
-        navLinks.forEach(item => {
-            item.classList.remove("active");
-        });
-
-        link.classList.add("active");
-
-        if (target === "#assistant") {
-            event.preventDefault();
-
-            openAssistant();
-            document.getElementById("userMessage").focus();
-            return;
-        }
-
-        if (target === "#userManagement") {
-            if (!currentUser || currentUser.role !== "admin") {
-                event.preventDefault();
-                return;
-            }
-
-            document.getElementById("userManagement")
-                .classList.remove("hidden");
-
-            loadUsers();
-        }
-    });
-});
 
 // ==========================================
 // START APPLICATION

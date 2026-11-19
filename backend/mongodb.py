@@ -1,5 +1,6 @@
 
 from pymongo import MongoClient
+from pymongo.errors import PyMongoError
 
 from backend.config import settings
 
@@ -24,6 +25,6 @@ def check_mongodb():
     try:
         client.admin.command("ping")
         return True
-    except Exception as e:
+    except PyMongoError as e:
         print("MongoDB connection error:", repr(e))
         return False

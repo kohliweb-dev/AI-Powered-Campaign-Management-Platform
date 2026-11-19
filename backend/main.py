@@ -1,5 +1,9 @@
+import logging
 import json
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from urllib.error import URLError
+from urllib.request import urlopen
 from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi import (
     FastAPI,
@@ -9,15 +13,19 @@ from fastapi import (
     File
 )
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from redis.exceptions import RedisError
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from langchain_ollama import ChatOllama
 from backend.config import settings
 from backend.database import Base, engine, get_db
 from backend import models, schemas
-from backend.cache import redis_client
-from backend.mongodb import chat_collection
+from backend.cache import check_redis, redis_client
+from backend.mongodb import chat_collection, check_mongodb
 
 from backend.rag import (
     add_pdf,
@@ -38,18 +46,23 @@ from backend.security import (
 )
 
 MAX_PDF_SIZE = 10 * 1024 * 1024
+logger = logging.getLogger(__name__)
 
 
 # ==========================================
 # DATABASE AND FASTAPI INITIALIZATION
 # ==========================================
 
-Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    yield
 
 app = FastAPI(
     title="AI-Powered Campaign Management Platform",
     description="Enterprise Capstone Project API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 # ==========================================
 # PROMETHEUS MONITORING
@@ -151,6 +164,12 @@ def get_authenticated_user(
             detail="User not found."
         )
 
+    if user.role == "deleting":
+        raise HTTPException(
+            status_code=403,
+            detail="This account is being deleted."
+        )
+
     return user
 
 
@@ -171,7 +190,11 @@ def get_admin_user(
 # ==========================================
 
 def get_campaign_cache_key(current_user: models.User):
-    version = redis_client.get(CACHE_VERSION_KEY)
+    try:
+        version = redis_client.get(CACHE_VERSION_KEY)
+    except RedisError as error:
+        logger.warning("Campaign cache unavailable; bypassing Redis: %s", error)
+        return None
 
     if version is None:
         version = "1"
@@ -186,7 +209,10 @@ def get_campaign_cache_key(current_user: models.User):
 
 
 def invalidate_campaign_cache():
-    redis_client.incr(CACHE_VERSION_KEY)
+    try:
+        redis_client.incr(CACHE_VERSION_KEY)
+    except RedisError as error:
+        logger.warning("Campaign cache invalidation failed: %s", error)
 
 
 # ==========================================
@@ -203,7 +229,42 @@ def home():
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    dependencies = {}
+
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        dependencies["postgres"] = True
+    except SQLAlchemyError as error:
+        logger.warning("PostgreSQL health check failed: %s", error)
+        dependencies["postgres"] = False
+
+    dependencies["redis"] = check_redis()
+    dependencies["mongodb"] = check_mongodb()
+
+    try:
+        with urlopen(
+            f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/tags",
+            timeout=2
+        ) as response:
+            dependencies["ollama"] = 200 <= response.status < 300
+    except (URLError, TimeoutError, ValueError) as error:
+        logger.warning("Ollama health check failed: %s", error)
+        dependencies["ollama"] = False
+
+    status = "healthy" if all(dependencies.values()) else "degraded"
+    return JSONResponse(
+        status_code=200 if dependencies["postgres"] else 503,
+        content={
+            "status": status,
+            "dependencies": dependencies
+        }
+    )
+
+
+@app.get("/health/live")
+def liveness_check():
+    return {"status": "alive"}
 
 
 # ==========================================
@@ -259,6 +320,12 @@ def login_user(
         raise HTTPException(
             status_code=401,
             detail="Invalid email or password."
+        )
+
+    if existing_user.role == "deleting":
+        raise HTTPException(
+            status_code=403,
+            detail="This account is being deleted."
         )
 
     access_token = create_access_token(
@@ -333,10 +400,17 @@ def update_user_role(
             detail="User not found."
         )
 
+    if user.role == "deleting":
+        raise HTTPException(
+            status_code=409,
+            detail="This account is being deleted."
+        )
+
     user.role = role_data.role
 
     db.commit()
     db.refresh(user)
+    invalidate_campaign_cache()
 
     return user
 
@@ -363,31 +437,52 @@ def delete_user(
             detail="User not found."
         )
 
-    campaign_count = db.query(models.Campaign).filter(
+    campaign_query = db.query(models.Campaign).filter(
         models.Campaign.owner_id == user_id
-    ).count()
+    )
+    campaign_count = campaign_query.count()
+
+    if user.role != "deleting":
+        user.role = "deleting"
+        campaign_query.delete(synchronize_session=False)
+        try:
+            db.commit()
+        except SQLAlchemyError as error:
+            db.rollback()
+            logger.exception("Could not mark user deletion as pending.")
+            raise HTTPException(
+                status_code=503,
+                detail="Could not start account cleanup. Please retry."
+            ) from error
 
     try:
         embedding_counts = delete_user_embeddings(user_id)
         deleted_chats = chat_collection.delete_many(
             {"user_id": user_id}
         ).deleted_count
-
-        db.query(models.Campaign).filter(
-            models.Campaign.owner_id == user_id
-        ).delete(synchronize_session=False)
-        db.delete(user)
-        db.commit()
     except Exception as e:
-        db.rollback()
-        print("USER DELETE ERROR:", repr(e))
+        logger.exception("User data cleanup is pending for user_id=%s.", user_id)
         raise HTTPException(
             status_code=503,
             detail=(
-                "Cleanup did not finish. The account was kept; retry deletion "
-                "to finish any remaining cleanup."
+                "Account access is disabled and data cleanup is pending. "
+                "Retry deletion to finish cleanup."
             )
         ) from e
+
+    try:
+        db.delete(user)
+        db.commit()
+    except SQLAlchemyError as error:
+        db.rollback()
+        logger.exception(
+            "External data was cleaned, but account finalization failed for user_id=%s.",
+            user_id
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Data cleanup finished, but account removal is pending. Retry deletion."
+        ) from error
 
     invalidate_campaign_cache()
 
@@ -419,22 +514,25 @@ def create_campaign(
     )
 
     db.add(new_campaign)
-    db.flush()
-
-    # Generate and store the campaign embedding
     try:
-        add_campaign(new_campaign)
-    except Exception as e:
+        db.commit()
+        db.refresh(new_campaign)
+    except SQLAlchemyError as error:
         db.rollback()
-        print("CAMPAIGN EMBEDDING ERROR:", repr(e))
-
+        logger.exception("Campaign database save failed.")
         raise HTTPException(
             status_code=503,
-            detail="Campaign could not be added to AI search. Check Ollama and ChromaDB."
-        )
+            detail="Campaign could not be saved to PostgreSQL."
+        ) from error
 
-    db.commit()
-    db.refresh(new_campaign)
+    try:
+        add_campaign(new_campaign)
+    except Exception:
+        logger.exception(
+            "Campaign %s was saved but could not be indexed. "
+            "Run the admin campaign reindex operation when search is available.",
+            new_campaign.id
+        )
 
     invalidate_campaign_cache()
 
@@ -450,11 +548,15 @@ def get_campaigns(
     current_user: models.User = Depends(get_authenticated_user)
 ):
     cache_key = get_campaign_cache_key(current_user)
+    if cache_key is not None:
+        try:
+            cached_data = redis_client.get(cache_key)
+        except RedisError as error:
+            logger.warning("Campaign cache read failed: %s", error)
+            cached_data = None
 
-    cached_data = redis_client.get(cache_key)
-
-    if cached_data:
-        return json.loads(cached_data)
+        if cached_data:
+            return json.loads(cached_data)
 
     query = db.query(models.Campaign)
 
@@ -470,11 +572,15 @@ def get_campaigns(
         for c in campaigns
     ]
 
-    redis_client.setex(
-        cache_key,
-        60,
-        json.dumps(result)
-    )
+    if cache_key is not None:
+        try:
+            redis_client.setex(
+                cache_key,
+                60,
+                json.dumps(result)
+            )
+        except RedisError as error:
+            logger.warning("Campaign cache write failed: %s", error)
 
     return result
 
@@ -646,20 +752,24 @@ def update_campaign(
     for key, value in updates.items():
         setattr(existing, key, value)
 
-    # Update the campaign embedding after changing campaign details.
     try:
-        add_campaign(existing)
-    except Exception as e:
+        db.commit()
+        db.refresh(existing)
+    except SQLAlchemyError as error:
         db.rollback()
-        print("CAMPAIGN EMBEDDING UPDATE ERROR:", repr(e))
-
+        logger.exception("Campaign database update failed.")
         raise HTTPException(
             status_code=503,
-            detail="Campaign update could not be added to AI search. Check Ollama and ChromaDB."
-        )
+            detail="Campaign changes could not be saved to PostgreSQL."
+        ) from error
 
-    db.commit()
-    db.refresh(existing)
+    try:
+        add_campaign(existing)
+    except Exception:
+        logger.exception(
+            "Campaign %s was updated but its search index is stale.",
+            existing.id
+        )
 
     invalidate_campaign_cache()
 

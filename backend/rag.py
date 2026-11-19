@@ -1,11 +1,11 @@
-
 from pathlib import Path
-from io import BytesIO
+import tempfile
 import hashlib
 import time
 from backend.config import settings
 import chromadb
-from pypdf import PdfReader
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_ollama import OllamaEmbeddings
 
 
@@ -54,22 +54,15 @@ CHUNK_OVERLAP = 100
 BATCH_SIZE = 32
 
 
-def split_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
-    """Split PDF text into smaller overlapping chunks."""
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=CHUNK_SIZE,
+    chunk_overlap=CHUNK_OVERLAP
+)
 
-    chunks = []
-    start = 0
 
-    while start < len(text):
-        end = start + chunk_size
-        chunk = text[start:end].strip()
-
-        if chunk:
-            chunks.append(chunk)
-
-        start += chunk_size - overlap
-
-    return chunks
+def split_text(text):
+    """Split PDF text into smaller overlapping chunks using LangChain."""
+    return text_splitter.split_text(text)
 
 
 # ==========================================
@@ -102,15 +95,28 @@ def add_pdf(file_bytes, filename, owner_id):
             "already_exists": True
         }
 
-    reader = PdfReader(BytesIO(file_bytes))
+    # PyPDFLoader needs a file path, so temporarily save the uploaded PDF bytes.
+    temp_pdf_path = None
 
-    page_texts = []
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
+            temp_file.write(file_bytes)
+            temp_pdf_path = temp_file.name
 
-    for page in reader.pages:
-        page_text = page.extract_text() or ""
+        loader = PyPDFLoader(temp_pdf_path)
+        documents = loader.load()
 
-        if page_text.strip():
-            page_texts.append(page_text)
+    finally:
+        # Remove the temporary PDF after the pages have been loaded.
+        if temp_pdf_path:
+            Path(temp_pdf_path).unlink(missing_ok=True)
+
+    # Combine text from all pages.
+    page_texts = [
+        document.page_content
+        for document in documents
+        if document.page_content.strip()
+    ]
 
     full_text = "\n".join(page_texts)
 

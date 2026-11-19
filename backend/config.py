@@ -19,32 +19,36 @@ def get_service_url(env_name):
     if not url:
         return None
 
-    if os.getenv("DOCKER_ENV", "").lower() == "true":
-        parts = urlsplit(url)
+    parts = urlsplit(url)
+    host_env_name = f"{env_name.removesuffix('_URL')}_HOST"
+    host_override = os.getenv(host_env_name)
 
-        if parts.hostname in ("localhost", "127.0.0.1"):
-            username_password = ""
+    if host_override:
+        replacement_host = host_override
+    elif (
+        os.getenv("DOCKER_ENV", "").lower() == "true"
+        and parts.hostname in ("localhost", "127.0.0.1")
+    ):
+        replacement_host = "host.docker.internal"
+    else:
+        return url
 
-            if "@" in parts.netloc:
-                username_password = parts.netloc.rsplit("@", 1)[0] + "@"
+    username_password = ""
 
-            port = f":{parts.port}" if parts.port else ""
+    if "@" in parts.netloc:
+        username_password = parts.netloc.rsplit("@", 1)[0] + "@"
 
-            new_netloc = (
-                username_password
-                + "host.docker.internal"
-                + port
-            )
+    port = f":{parts.port}" if parts.port else ""
 
-            url = urlunsplit((
-                parts.scheme,
-                new_netloc,
-                parts.path,
-                parts.query,
-                parts.fragment
-            ))
+    new_netloc = username_password + replacement_host + port
 
-    return url
+    return urlunsplit((
+        parts.scheme,
+        new_netloc,
+        parts.path,
+        parts.query,
+        parts.fragment
+    ))
 
 
 class Settings:

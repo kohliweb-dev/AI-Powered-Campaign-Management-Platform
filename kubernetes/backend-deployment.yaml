@@ -1,4 +1,3 @@
-
 apiVersion: apps/v1
 kind: Deployment
 
@@ -19,9 +18,34 @@ spec:
         app: capstone-backend
 
     spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - until pg_isready -h capstone-postgres-service -p 5432; do sleep 2; done
+        - name: wait-for-mongodb
+          image: mongo:7
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - until mongosh --quiet --host capstone-mongodb-service --eval 'db.adminCommand("ping").ok'; do sleep 2; done
+        - name: prepare-chroma-storage
+          image: docker.io/library/enterprise-capstone-backend:20261119-fix1
+          imagePullPolicy: Never
+          command:
+            - python
+            - -c
+            - from pathlib import Path; [Path('/data', name).mkdir(parents=True, exist_ok=True) for name in ('chroma_db', 'campaign_search')]
+          volumeMounts:
+            - name: chroma-data
+              mountPath: /data
       containers:
         - name: backend
-          image: docker.io/library/enterprise_capstone-backend:latest
+          image: docker.io/library/enterprise-capstone-backend:20261119-fix1
           imagePullPolicy: Never
 
           envFrom:
@@ -29,6 +53,10 @@ spec:
                 name: capstone-secrets
 
           env:
+            - name: POSTGRES_HOST
+              value: capstone-postgres-service.enterprise-capstone.svc.cluster.local
+            - name: MONGO_HOST
+              value: capstone-mongodb-service.enterprise-capstone.svc.cluster.local
             - name: DOCKER_ENV
               value: "true"
             - name: OLLAMA_BASE_URL
@@ -36,3 +64,28 @@ spec:
 
           ports:
             - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 12
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 3
+          volumeMounts:
+            - name: chroma-data
+              mountPath: /app/chroma_db
+              subPath: chroma_db
+            - name: chroma-data
+              mountPath: /app/campaign_search
+              subPath: campaign_search
+      volumes:
+        - name: chroma-data
+          persistentVolumeClaim:
+            claimName: capstone-chroma-pvc

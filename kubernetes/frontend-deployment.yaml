@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: docker.io/library/enterprise-capstone-frontend:k8s
+          image: docker.io/library/enterprise-capstone-frontend:20261119
           imagePullPolicy: Never
           ports:
             - containerPort: 80

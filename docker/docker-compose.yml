@@ -14,6 +14,7 @@ services:
     restart: unless-stopped
 
   backend:
+    image: enterprise-capstone-backend:latest
     build:
       context: ..
       dockerfile: docker/Dockerfile
