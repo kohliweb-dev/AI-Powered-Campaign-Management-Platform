@@ -298,10 +298,19 @@ https://github.com/kohliweb-dev/AI-Powered-Campaign-Management-Platform
 ## Application Screenshots
 
 ### Main Dashboard
-![Main Dashboard](screenshots/login_page.png)
+![Main Dashboard](screenshots/signin.png)
 
 ### AI Chatbot and RAG
-![AI Chatbot](screenshots/AIchatbot.png)
+![AI Chatbot](screenshots/assistant.html.png)
+
+### AIgeneartor campaign 
+![AIgeneartor campaign](screenshots/AIgenerator.html.png)
+
+### analytics campaigns 
+![analytics campaigns ](screenshots/analytics.html.png)
+
+### campaigns page
+![analytics campaigns ](screenshots/campaigns.html.png)
 
 
 
