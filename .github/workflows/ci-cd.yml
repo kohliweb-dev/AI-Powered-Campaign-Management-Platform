@@ -1,0 +1,28 @@
+
+name: Enterprise Capstone CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get project code
+        uses: actions/checkout@v4
+
+      - name: Check Python syntax
+        run: python -m compileall -q backend
+
+      - name: Build Backend Docker Image
+        run: docker build -t enterprise-capstone-backend:latest -f docker/Dockerfile .
+
+      - name: Build Frontend Docker Image
+        run: docker build -t enterprise-capstone-frontend:latest -f docker/Dockerfile.frontend .
